@@ -4,7 +4,7 @@
 - `intro-cover.png`：同一宣传片的原有封面，沿用老板鼠、暖纸色与铜色的产品视觉。
 - `overview.png`、`attention.png`、`boss-idle.png`、`connections.png`：从当前 SwiftUI 产品视图渲染的示例界面，分别展示收起/展开、待回答、老板鼠查岗和接入应用。任务是合成数据；来源配置与宠物读取指向隔离目录，不读取真实会话或宠物数据库。应用标识从安装包资源读取，绕过 Finder 自定义图标。
 - `attention-flow.svg`：原创静态示意图，说明“抬眼看 → 展开看 → 回现场”，采用 MIT 许可。
-- `pet-family.png`：作者提供的两张个人桌面截图，经内置 imagegen 精修为灵宠合影，保留瓶盖猫、黄色小鸭和老板鼠，清理聊天窗口、标签与 Dock 背景，统一留白与暖纸色背景。用于 README 的命名故事；编辑提示词见 [制作记录](source/pet-family-edit.md)。
+- `pet-family.png`：作者提供的个人桌面截图，经内置 imagegen 精修为灵宠合影，清理聊天窗口与 Dock 背景，统一留白与暖纸色背景。瓶盖猫、白底小黄鸭和老板鼠下方分别标注 ChatGPT、Qoder CN、灵宠岛，用于 README 的命名故事；编辑提示词见 [制作记录](source/pet-family-edit.md)。
 
 界面图的可复现入口为 `source/render-showcase.sh`，需要与源码构建相同的 macOS 工具链和图形会话。它构建演示程序并在屏幕外渲染，不安装应用、接入来源工具或修改用户配置；电源状态使用不会调用系统服务的示例后端。任务画面和素材范围见 [素材说明](../../THIRD_PARTY_NOTICES.md)。
 

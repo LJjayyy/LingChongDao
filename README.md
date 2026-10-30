@@ -44,7 +44,7 @@ https://github.com/user-attachments/assets/04e7e4d5-7650-44f9-9cf1-bf679a2e9e2e
 
 ## 为什么叫「灵宠岛」
 
-![作者的三只灵宠合影：戴瓶盖用电脑的猫、黄色小鸭和西装老板鼠，由作者提供的截图精修而成。](assets/readme/pet-family.png)
+![作者的灵宠合影：瓶盖猫对应 ChatGPT，白底小黄鸭对应 Qoder CN，西装老板鼠对应灵宠岛。](assets/readme/pet-family.png)
 
 我喜欢把玩各种 AI 应用里的小宠物，也把每个 Agent（AI 助手）当成一只“灵宠”。借鉴 iOS 灵动岛的设计，给它们在 Mac 顶部安个家，就有了「灵宠岛」。[更多设计想法](docs/设计理念.md)。
 
