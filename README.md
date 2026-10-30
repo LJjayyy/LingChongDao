@@ -9,13 +9,15 @@
 住在 Mac 屏幕顶部的小助手，帮你盯住不同 AI 工具里的任务。
 谁还在忙、谁等你点头、谁已经收工，抬眼就能看到。
 
-[看 30 秒介绍](assets/readme/intro.mp4) · [三步上岛](#三步上岛) · [为什么这样设计](#为什么是一座小岛)
+[看 30 秒介绍](#30-秒介绍) · [三步上岛](#三步上岛) · [为什么这样设计](#为什么是一座小岛)
 
 macOS 14 及以上 · 搭载 M 系列芯片的 Mac
 
 </div>
 
-[![老板鼠坐镇灵宠岛：AI 分头忙，你一眼掌握。点击观看 30 秒介绍。](assets/readme/intro-cover.png)](assets/readme/intro.mp4)
+## 30 秒介绍
+
+https://github.com/user-attachments/assets/04e7e4d5-7650-44f9-9cf1-bf679a2e9e2e
 
 ## 老板鼠今天负责什么
 

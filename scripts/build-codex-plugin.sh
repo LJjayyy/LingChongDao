@@ -19,7 +19,8 @@ if [[ ! -x "$helper" ]]; then
   echo "Build dist/build.noindex/灵宠岛.app before packaging its Codex companion plugin." >&2
   exit 1
 fi
-/usr/bin/lipo -verify_arch arm64 "$helper"
+# Keep the input before the variadic architecture list for Xcode 16 lipo.
+/usr/bin/lipo "$helper" -verify_arch arm64
 if [[ -x /opt/homebrew/bin/python3 ]]; then
   plugin_python=/opt/homebrew/bin/python3
 else

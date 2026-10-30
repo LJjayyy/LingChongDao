@@ -15,8 +15,8 @@ plist="$app_dir/Contents/Info.plist"
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :LingChongDaoArtworkProfile' "$plist")" == 'public' ]]
 version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo '应用版本必须为 x.y.z。' >&2; exit 1; }
-/usr/bin/lipo -verify_arch arm64 "$app_dir/Contents/MacOS/LingChongDao"
-/usr/bin/lipo -verify_arch arm64 "$app_dir/Contents/MacOS/lingchongdao-hook"
+/usr/bin/lipo "$app_dir/Contents/MacOS/LingChongDao" -verify_arch arm64
+/usr/bin/lipo "$app_dir/Contents/MacOS/lingchongdao-hook" -verify_arch arm64
 /usr/bin/codesign --verify --deep --strict "$app_dir"
 
 output_dir="$project_dir/dist/release"
