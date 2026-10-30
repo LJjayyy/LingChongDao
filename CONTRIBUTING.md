@@ -14,6 +14,8 @@
 
 `verify-all.sh` 串行执行不需要真实来源 CLI 的验证，失败时返回非零状态。动效与布局检查需要活动的 macOS 图形会话；其窗口在屏幕外使用合成数据，不安装真实来源插件。运行这些时避免同时进行重型编译，以免干扰时序采样。完整 Xcode 环境还可运行 `swift test`。
 
+本机默认严格检查布局 250ms 和导航 100ms 的性能预算。共享 GitHub runner 上，CI 与发布工作流设置 `LINGCHONGDAO_VERIFY_TIMING=report`：仍实际渲染页面、点击导航、核对截图中的选中状态，但绝对耗时只记录，不因虚拟机调度抖动阻止构建。状态、审批、插件、悬停、打包等其他检查仍正常判定成败。系统开启“减少动态效果”时，动效插值专项会明确标记跳过；应另在关闭该选项的本机运行 `verify-motion.sh`。
+
 `verify-claude-plugin.sh /absolute/path/to/claude` 需真实 Claude CLI，作为可选专项验证；`verify-pet-renderer.sh --live` 会额外只读本机当前宠物。它们不属于默认验证，不要在普通 CI 中假设用户装有来源工具。
 
 ## 改动边界

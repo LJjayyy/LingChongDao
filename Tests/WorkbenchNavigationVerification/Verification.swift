@@ -8,6 +8,10 @@ import IslandConnections
 @main
 struct WorkbenchNavigationVerification {
  @MainActor static func main() throws {
+  let timingMode = ProcessInfo.processInfo.environment["LINGCHONGDAO_VERIFY_TIMING"] ?? "strict"
+  guard ["strict", "report"].contains(timingMode) else {
+   print("FAIL: LINGCHONGDAO_VERIFY_TIMING must be strict or report"); exit(2)
+  }
   let app = NSApplication.shared
   app.setActivationPolicy(.accessory)
   let suite = "local.lingchongdao.navigation-verification." + UUID().uuidString
@@ -78,6 +82,11 @@ struct WorkbenchNavigationVerification {
    worst = max(worst, maxGap)
   }
   if worst > 0.10 { failures.append("\(Int(width))pt navigation stalled \(worst)s") }
+  }
+  if timingMode == "report" {
+   for failure in failures { print("TIMING REPORT: \(failure)") }
+   print("PASS navigation selection at both widths; timing recorded without a shared-runner performance gate")
+   return
   }
   for failure in failures { print("FAIL: \(failure)") }
   print(failures.isEmpty ? "PASS navigation stalls <100ms at both widths" : "FAIL navigation stalls >100ms")

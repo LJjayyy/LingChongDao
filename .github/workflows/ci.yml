@@ -32,6 +32,8 @@ jobs:
         run: ./scripts/build-app.sh release
 
       - name: Run isolated verification sequentially
+        env:
+          LINGCHONGDAO_VERIFY_TIMING: report
         run: ./scripts/verify-all.sh
 
       - name: Package DMG
