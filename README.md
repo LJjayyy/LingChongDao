@@ -46,7 +46,7 @@ https://github.com/user-attachments/assets/04e7e4d5-7650-44f9-9cf1-bf679a2e9e2e
 
 ![抬眼看状态，展开看任务，需要完整操作时回到原来的 AI 会话。](assets/readme/attention-flow.svg)
 
-**平时站旁边，有事再喊你。** 不编进度，也不替你拍板。[看看这座岛的设计想法](docs/设计理念.md)。
+**“灵”是 AI 的机灵，“宠”是老板鼠的陪伴。** “岛”借鉴了 iOS 灵动岛的设计，给 AI 同事们在 Mac 顶部安个小窝。[更多设计想法](docs/设计理念.md)。
 
 <details>
 <summary>上岛前的两个小问题</summary>
