@@ -8,7 +8,7 @@
 
 住在 Mac 屏幕顶部的小助手。AI 各忙各的，老板鼠替你盯着。
 
-[看 30 秒介绍](#30-秒介绍) · [三步上岛](#三步上岛) · [为什么这样设计](#为什么是一座小岛)
+[看 30 秒介绍](#30-秒介绍) · [三步上岛](#三步上岛) · [名字怎么来的](#为什么叫灵宠岛)
 
 macOS 14 及以上 · 搭载 M 系列芯片的 Mac
 
@@ -42,11 +42,11 @@ https://github.com/user-attachments/assets/04e7e4d5-7650-44f9-9cf1-bf679a2e9e2e
 
 可以一起上班的有：**Codex、Qoder CN / IDE、Claude Code、ZCode、DeepSeek Harness、CodeBuddy CN、WorkBuddy**。老板鼠和图标随安装包一起入住。
 
-## 为什么是一座“小岛”
+## 为什么叫「灵宠岛」
 
 ![抬眼看状态，展开看任务，需要完整操作时回到原来的 AI 会话。](assets/readme/attention-flow.svg)
 
-**“灵”是 AI 的机灵，“宠”是老板鼠的陪伴。** “岛”借鉴了 iOS 灵动岛的设计，给 AI 同事们在 Mac 顶部安个小窝。[更多设计想法](docs/设计理念.md)。
+我喜欢把玩各种 AI 应用里的小宠物，也把每个 Agent（AI 助手）当成一只“灵宠”。借鉴 iOS 灵动岛的设计，给它们在 Mac 顶部安个家，就有了「灵宠岛」。[更多设计想法](docs/设计理念.md)。
 
 <details>
 <summary>上岛前的两个小问题</summary>
