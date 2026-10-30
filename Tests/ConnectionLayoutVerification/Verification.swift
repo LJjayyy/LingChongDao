@@ -8,6 +8,25 @@ import IslandConnections
 struct ConnectionLayoutVerification {
  @MainActor static func main() async throws {
   NSApplication.shared.setActivationPolicy(.prohibited)
+  // Navigation happens after the workbench has initialized SwiftUI. Warm only
+  // the generic controls renderer; the real ConnectionsView is still measured on
+  // its first layout, with the same 250ms limit on every measured sample.
+  let rendererStart = Date()
+  let startupHost = NSHostingView(rootView: ScrollView {
+    VStack {
+      Label("灵宠岛", systemImage: "rectangle.stack")
+      Button("任务总览") {}
+    }.font(.system(size: 13))
+  }.frame(width: 600, height: 800))
+  let startupWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 600, height: 800),
+    styleMask: [.borderless], backing: .buffered, defer: false)
+  startupWindow.isReleasedWhenClosed = false
+  startupWindow.contentView = startupHost
+  startupHost.frame = NSRect(x: 0, y: 0, width: 600, height: 800)
+  startupHost.layoutSubtreeIfNeeded()
+  startupHost.displayIfNeeded()
+  startupWindow.close()
+  print("renderer initialization", Date().timeIntervalSince(rendererStart))
   let manager = ConnectionManager()
   let refreshStart = Date()
   await manager.refresh()
