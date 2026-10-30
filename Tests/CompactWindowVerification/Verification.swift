@@ -27,6 +27,16 @@ struct CompactWindowVerification {
             guard value else { throw CheckError.failed(message) }
             checks += 1
         }
+        func waitForExpansion(_ context: IslandWindowContext, _ expanded: Bool) async throws {
+            let clock = ContinuousClock()
+            let deadline = clock.now + .seconds(2)
+            while context.expanded != expanded && clock.now < deadline {
+                try await Task.sleep(for: .milliseconds(10))
+            }
+            guard context.expanded == expanded else {
+                throw CheckError.failed("\(context.screenID) did not reach expanded=\(expanded) within two seconds")
+            }
+        }
         do {
             let context = IslandWindowContext(screenID: "synthetic", hasNotch: true, notchHeight: 38, availableWidth: 1512, notchWidth: 120)
             let coordinator = IslandWindowCoordinator()
@@ -106,14 +116,18 @@ struct CompactWindowVerification {
             let hoverCoordinator = IslandWindowCoordinator()
             hover.coordinator = hoverCoordinator
             defer { hover.invalidate() }
-            // State assertions run after bounded timing margins; they do not estimate FPS.
+            // Await state transitions with a bounded deadline: a task can start late
+            // on a shared runner. Fixed sleeps remain for cancellation/hold checks.
             hover.setHovered(active: true, hasActivity: true)
             try await Task.sleep(for: .milliseconds(40))
             hover.setHovered(active: false, hasActivity: true)
             try await Task.sleep(for: IslandMotion.hoverEnterDelay + .milliseconds(45))
             try require(!hover.expanded && !hover.hovering, "quick entry and exit cancel the pending open")
+            // Reproduce a queued main actor so this cannot regress to a fixed
+            // sleep that resumes before the hover task has even started its delay.
+            DispatchQueue.main.async { Thread.sleep(forTimeInterval: 0.25) }
             hover.setHovered(active: true, hasActivity: true)
-            try await Task.sleep(for: IslandMotion.hoverEnterDelay + .milliseconds(45))
+            try await waitForExpansion(hover, true)
             try require(hover.expanded && hoverCoordinator.keyboardFocusRequests == 0,
                         "re-entry opens after the new delay without taking keyboard focus")
             hover.setHovered(active: false, hasActivity: true)
@@ -122,7 +136,7 @@ struct CompactWindowVerification {
             try await Task.sleep(for: IslandMotion.hoverExitDelay + .milliseconds(45))
             try require(hover.expanded, "quick return cancels a pending hover close")
             hover.setHovered(active: false, hasActivity: true)
-            try await Task.sleep(for: IslandMotion.hoverExitDelay + .milliseconds(45))
+            try await waitForExpansion(hover, false)
             try require(!hover.expanded, "hover-owned surface closes after a stable exit")
 
             // A click that races the enter task must not later become hover-owned.
@@ -139,7 +153,7 @@ struct CompactWindowVerification {
             try require(!hover.expanded, "explicit collapse remains immediate")
 
             hover.setHovered(active: true, hasActivity: true)
-            try await Task.sleep(for: IslandMotion.hoverEnterDelay + .milliseconds(45))
+            try await waitForExpansion(hover, true)
             try require(hover.beginEditing(requestID: "synthetic-request"), "editor pin can acquire the window lock")
             hover.setHovered(active: false, hasActivity: true)
             try await Task.sleep(for: IslandMotion.hoverExitDelay + .milliseconds(45))
@@ -150,22 +164,22 @@ struct CompactWindowVerification {
             hover.collapse()
 
             hover.setHovered(active: true, hasActivity: true)
-            try await Task.sleep(for: IslandMotion.hoverEnterDelay + .milliseconds(45))
+            try await waitForExpansion(hover, true)
             hover.setBusy(true)
             hover.setHovered(active: false, hasActivity: true)
             try await Task.sleep(for: IslandMotion.hoverExitDelay + .milliseconds(45))
             try require(hover.expanded && hover.busy, "busy work protects a hover-owned surface from closing")
             hover.setBusy(false)
-            try await Task.sleep(for: IslandMotion.hoverExitDelay + .milliseconds(45))
+            try await waitForExpansion(hover, false)
             try require(!hover.expanded && !hover.busy, "busy release re-evaluates a pending hover exit")
 
             hoverCoordinator.allowsEditing = false
             hover.setHovered(active: true, hasActivity: true)
-            try await Task.sleep(for: IslandMotion.hoverEnterDelay + .milliseconds(45))
+            try await waitForExpansion(hover, true)
             try require(!hover.beginEditing(requestID: "blocked-request") && hover.editingRequestID == nil,
                         "a denied editor lock does not pin the surface")
             hover.setHovered(active: false, hasActivity: true)
-            try await Task.sleep(for: IslandMotion.hoverExitDelay + .milliseconds(45))
+            try await waitForExpansion(hover, false)
             try require(!hover.expanded, "denied editor acquisition preserves normal hover closing")
             hoverCoordinator.allowsEditing = true
             let idle = IslandWindowContext(screenID: "idle-boss", hasNotch: true, notchHeight: 38,
@@ -176,7 +190,7 @@ struct CompactWindowVerification {
             try await Task.sleep(for: IslandMotion.hoverEnterDelay + .milliseconds(45))
             try require(!idle.expanded && idle.idleEncounterNumber == 0,
                         "idle encounter waits for the longer deliberate-hover delay")
-            try await Task.sleep(for: IslandMotion.idleEncounterEnterDelay - IslandMotion.hoverEnterDelay + .milliseconds(45))
+            try await waitForExpansion(idle, true)
             try require(idle.expanded && idle.idleEncounterActive && idle.idleEncounterNumber == 1,
                         "stable idle hover opens one boss encounter")
             try require(idleCoordinator.keyboardFocusRequests == 0,
@@ -195,11 +209,11 @@ struct CompactWindowVerification {
             try require(idle.expanded && idle.idleEncounterActive && idle.idleEncounterNumber == 1,
                         "quick return cancels idle encounter closing without replay")
             idle.setHovered(active: false, hasActivity: false)
-            try await Task.sleep(for: IslandMotion.hoverExitDelay + .milliseconds(45))
+            try await waitForExpansion(idle, false)
             try require(!idle.expanded && !idle.idleEncounterActive,
                         "leaving the island closes and clears the idle encounter")
             idle.setHovered(active: true, hasActivity: false)
-            try await Task.sleep(for: IslandMotion.idleEncounterEnterDelay + .milliseconds(45))
+            try await waitForExpansion(idle, true)
             try require(idle.expanded && idle.idleEncounterActive && idle.idleEncounterNumber == 2,
                         "a later idle visit starts a fresh encounter")
 
@@ -226,7 +240,7 @@ struct CompactWindowVerification {
                         "a still-hovered pointer does not immediately reopen an explicitly collapsed island")
             idle.setHovered(active: false, hasActivity: false)
             idle.setHovered(active: true, hasActivity: false)
-            try await Task.sleep(for: IslandMotion.idleEncounterEnterDelay + .milliseconds(45))
+            try await waitForExpansion(idle, true)
             try require(idle.expanded && idle.idleEncounterNumber == 4,
                         "a fresh pointer re-entry after collapse starts a new encounter")
             idle.invalidate()
@@ -245,7 +259,7 @@ struct CompactWindowVerification {
                                    widthPercent: 100, heightPercent: 100, notchWidth: 120)
             try require(!explicitTask.expanded && !explicitTask.idleEncounterActive,
                         "last task ending under an explicit hover does not leave a blank expanded surface")
-            try await Task.sleep(for: IslandMotion.idleEncounterEnterDelay + .milliseconds(45))
+            try await waitForExpansion(explicitTask, true)
             try require(explicitTask.expanded && explicitTask.idleEncounterActive && explicitTask.idleEncounterNumber == 1,
                         "the steady pointer opens a fresh idle encounter after the task surface collapses")
             explicitTask.invalidate()
