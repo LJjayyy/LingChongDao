@@ -1,0 +1,15 @@
+{
+  "tool": "image_gen built-in",
+  "grid": {
+    "columns": 2,
+    "rows": 2
+  },
+  "frames": [
+    "idle",
+    "blink",
+    "inspect",
+    "point"
+  ],
+  "source": "老板鼠静态角色，保持身份编辑",
+  "prompt": "Use case: identity-preserve\nEdit target: the provided transparent boss mouse mascot. Preserve this exact Jerry-inspired character, warm brown fur, giant peach ears, cream muzzle, charcoal business suit, red tie, squat proportions, smug mean-boss personality and soft hand-painted desktop-pet rendering. Do not redesign him.\nDeliverable: a production animation sprite atlas with EXACTLY FOUR frames in a STRICT 2 columns x 2 rows grid on one square transparent canvas. Equal square cells, each frame centered identically, same scale, same ground baseline and head center. Transparent gutters inside each cell, no element crossing into adjacent cells. No grid lines, text, borders, ground shadows or backgrounds. All ears, feet and gestures fully inside their own cell. Keep around 8% transparent margin within every cell, enough room for the gesture.\nFrame order, row major:\nTop-left frame 0: original folded-arms idle pose, eyes half open and smug, essentially the reference pose.\nTop-right frame 1: EXACT SAME body/ears/head position and folded arms as frame 0, both eyes gently closed for a blink. Change only eyelids, do not tilt or shrink him.\nBottom-left frame 2: same folded arms and same fixed body position, one eyebrow raised higher, eyes a little more open and looking toward the viewer, a stern inspecting-the-staff expression. A very tiny head tilt, keep face identity and scale.\nBottom-right frame 3: same boss and body/feet position, one arm stays across body, other arm uncrosses and raises a single index finger beside his cheek, giving a short comical 'get back to work' lecture. Small stern open mouth. No props.\nCritical: this is four animation states of ONE character, not four different designs. Identical ear/head size, lighting, textures, suit colors and aligned baseline across all four frames. Four distinct clean separated sprites on genuinely transparent alpha."
+}

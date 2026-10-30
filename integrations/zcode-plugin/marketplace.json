@@ -1,0 +1,14 @@
+{
+  "name": "lingchongdao-local",
+  "plugins": [
+    {
+      "name": "lingchongdao-zcode",
+      "source": "./plugins/lingchongdao-zcode",
+      "displayName": "灵宠岛",
+      "displayName_i18n": { "zh-CN": "灵宠岛" },
+      "description": "灵宠岛 · 把 ZCode 会话与工具活动同步到灵宠岛，并处理简单 Bash 权限请求",
+      "description_i18n": { "zh-CN": "把 ZCode 的会话、工具活动同步到灵宠岛，并可处理简单 Bash 权限请求。" },
+      "category": "productivity"
+    }
+  ]
+}

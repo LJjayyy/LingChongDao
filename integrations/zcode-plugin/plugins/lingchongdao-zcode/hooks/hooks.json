@@ -1,0 +1,88 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/bin/sh\" \"${ZCODE_PLUGIN_ROOT}/scripts/forward-hook.sh\" --timeout 2",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步会话开始"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/bin/sh\" \"${ZCODE_PLUGIN_ROOT}/scripts/forward-hook.sh\" --timeout 2",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步新任务"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/bin/sh\" \"${ZCODE_PLUGIN_ROOT}/scripts/forward-hook.sh\" --timeout 2",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步工具开始"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/bin/sh\" \"${ZCODE_PLUGIN_ROOT}/scripts/forward-hook.sh\" --timeout 45",
+            "timeout": 60,
+            "statusMessage": "灵宠岛 · 处理权限请求"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/bin/sh\" \"${ZCODE_PLUGIN_ROOT}/scripts/forward-hook.sh\" --timeout 2",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步工具结果"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/bin/sh\" \"${ZCODE_PLUGIN_ROOT}/scripts/forward-hook.sh\" --timeout 2",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步工具失败"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/bin/sh\" \"${ZCODE_PLUGIN_ROOT}/scripts/forward-hook.sh\" --timeout 2",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步本轮结束"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+Building for debugging...
+[4 / 17] IslandCore
+[10 / 23] IslandCore
+[14 / 25] IslandCore
+[20 / 31] IslandCore
+<USER_HOME>/Documents/Codex/2026-10-23/dia/work/AIIsland/Package.swift: IslandCore: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[26 / 31] IslandConnections
+<USER_HOME>/Documents/Codex/2026-10-23/dia/work/AIIsland/Package.swift: IslandConnections: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[28 / 32] AIIsland-product
+[31 / 35] AIIsland-product
+[32 / 35] AIIsland-product
+<USER_HOME>/Documents/Codex/2026-10-23/dia/work/AIIsland/Package.swift: AIIsland-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+<USER_HOME>/Documents/Codex/2026-10-23/dia/work/AIIsland/Package.swift: AIIsland-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[34 / 35] AIIsland-product
+Build complete! (1.81秒)
+PASS Preview preserves an existing real task
+PASS Ending preview removes only preview tasks
+PASS Real approval takes priority over a preview question
+PASS Approval received during preview survives ending preview
+PASS Old timestamp cannot invalidate a live approval
+PASS Old turn cannot invalidate a live approval
+PASS PreToolUse retains the actual pending approval
+PASS Matching valid approval returns allow to its waiting transport
+PASS Source-expired request never becomes actionable
+PASS Source deadline is not extended by transport deadline
+PASS Delayed replacement leaves the current request attached
+PASS Denial reaches only its matching waiting transport
+PASS Source tool completion cancels the pending hook safely
+13 application checks passed. No real provider configuration changed.

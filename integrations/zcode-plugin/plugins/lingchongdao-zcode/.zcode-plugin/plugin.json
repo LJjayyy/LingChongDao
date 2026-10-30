@@ -1,0 +1,6 @@
+{
+  "name": "lingchongdao-zcode",
+  "version": "0.1.0",
+  "description": "灵宠岛 · 把 ZCode 的会话与工具活动同步到灵宠岛，并处理简单 Bash 权限请求",
+  "hooks": "./hooks/hooks.json"
+}

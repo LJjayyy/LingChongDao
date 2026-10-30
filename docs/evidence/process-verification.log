@@ -1,0 +1,4 @@
+PASS Bundled helper reaches the running native application
+PASS Observer event returns an empty hook response
+PASS Real application timeout returns to source without approval
+PASS Source-expired request does not emit allow

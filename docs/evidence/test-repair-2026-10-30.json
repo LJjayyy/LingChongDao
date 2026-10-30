@@ -1,0 +1,134 @@
+{
+  "date": "2026-10-30",
+  "scope": "Repair the two stale standalone verification scripts identified by the open-source audit; preserve production approval rules.",
+  "environment": {
+    "platform": "macOS",
+    "architecture": "arm64",
+    "toolchain": "Apple Swift 6.4 / Command Line Tools",
+    "execution": "Isolated temporary source copy; no installed application or live provider configuration changed."
+  },
+  "reproduced_before": [
+    {
+      "script": "verify-application.sh",
+      "exit_code": 1,
+      "signal": [
+        "FAIL routing regression: CheckFailure(message: \"IDE denial reaches only IDE while desktop approval stays pending\")"
+      ]
+    },
+    {
+      "script": "verify-expired-requests.sh",
+      "exit_code": 133,
+      "signal": [
+        "main/ExpiredRequestVerification.swift:27: Fatal error: Unexpectedly found nil while unwrapping an Optional value"
+      ]
+    }
+  ],
+  "root_causes": [
+    "Application routing checks still expected interactive Qoder allow/deny even though both Qoder hosts are observation-only.",
+    "The Qoder workbench expiry fixture used raw expires_at; observation lifetime is derived from source event time plus 110 seconds.",
+    "Codex approval fixtures lacked matching synthetic session/turn reviewer metadata, so AppModel correctly returned fallback before creating the sessions that the old tests expected."
+  ],
+  "intermediate_check": {
+    "command": "./scripts/verify-application.sh --routing-only",
+    "result": "After updating Qoder routing assertions, the remaining stale workbench expiry fixture failed with: Expired approval history does not occupy a workbench row."
+  },
+  "repairs": [
+    "Assert Qoder host/session isolation, acknowledged observation replies, disabled island decisions, rejected stale actions, and source-owned completion for each host.",
+    "Construct the expired Qoder observation with a source timestamp older than its observation lifetime.",
+    "Share synthetic Codex JSONL session_meta/turn_context fixtures with matching user reviewer, turn ID and session ID.",
+    "Assert missing reviewer metadata and auto_review both return fallback without creating an approval card.",
+    "Use bounded asynchronous waits and explicit optional-state failures; top-level failures exit with status 1 and run fixture cleanup.",
+    "Compile the shared fixture from both verification scripts and print actual application check totals."
+  ],
+  "negative_control": {
+    "mutation": "Temporarily omit transcript_path from the shared fixture in the isolated source copy only.",
+    "results": [
+      {
+        "command": "./scripts/verify-application.sh",
+        "exit_code": 1,
+        "failure": "FAIL application verification: CheckFailure(message: \"Timed out: Live user approval arrived\")",
+        "fatal_error": false
+      },
+      {
+        "command": "./scripts/verify-expired-requests.sh",
+        "exit_code": 1,
+        "failure": "FAIL expired-request verification: Failure(message: \"Expected retained expired approval history\")",
+        "fatal_error": false
+      }
+    ],
+    "fixture_restored_before_final_runs": true
+  },
+  "final_runs": [
+    {
+      "command": "./scripts/verify-application.sh",
+      "exit_code": 0,
+      "checks_passed": 89,
+      "summary": "89 application checks passed. No real provider configuration changed."
+    },
+    {
+      "command": "./scripts/verify-expired-requests.sh",
+      "exit_code": 0,
+      "checks_passed": 16,
+      "summary": "16 expired-request checks passed. No real approvals or source configuration were changed."
+    },
+    {
+      "command": "./scripts/verify.sh",
+      "exit_code": 0,
+      "checks_passed": 43,
+      "summary": "43 passed; 0 failed. No live provider configuration was modified."
+    },
+    {
+      "command": "./scripts/verify-codex-approvals.sh",
+      "exit_code": 0,
+      "checks_passed": 32,
+      "summary": "PASS 32 Codex approval checks: real helper sockets, parallel requests, allow, deny, fallback, timeout, source cancellation, stale UI"
+    },
+    {
+      "command": "./scripts/verify-qoder-approvals.sh",
+      "exit_code": 0,
+      "checks_passed": 22,
+      "summary": "PASS 22 Qoder status checks: observation-only, native lifecycle, stale controls, host coverage, safe output"
+    }
+  ],
+  "files": {
+    "Tests/ApplicationVerification/ApplicationVerification.swift": {
+      "before_sha256": "0b609a90a4563592b66081c552e25953b97b89bc4ca950f77aa5fe0aed02c397",
+      "after_sha256": "a750afd895fe00d1b2b6b33dddcf66af986888e951ae1bdba213a5736157cd63"
+    },
+    "Tests/ExpiredRequestVerification/ExpiredRequestVerification.swift": {
+      "before_sha256": "93d2cc9fb6cd050679a3115cf2b80ddc69b0f7250db90c52e5abc29c1f89ba30",
+      "after_sha256": "bf10e77f5a91d2a7e8f76d4029287a0b214517f5b670b2608895e2e65c1d4d2b"
+    },
+    "Tests/VerificationSupport/CodexReviewFixture.swift": {
+      "before_sha256": null,
+      "after_sha256": "6b20813a75ded00d7f2328ef4cd69b4d6a0c2e33c09b8e6e37cc5cf34610e726"
+    },
+    "scripts/verify-application.sh": {
+      "before_sha256": "02be84ff33e7c4076db0a8bfab236a44999d72add7d6850784ef164fddac09c9",
+      "after_sha256": "090008e171ee63497b2bebcd8071f25c70a8d898ae4db08bf75cabd419c11122"
+    },
+    "scripts/verify-expired-requests.sh": {
+      "before_sha256": "fd5fdd23a73869b49bd37e1426af08671c0440be4978b8fc1d4babc3aaae0968",
+      "after_sha256": "7b2f15a666da21806657bc68bfc4d2db2d1cf714418ec0dce79f5fed1dfaf44a"
+    }
+  },
+  "production_sources": {
+    "files_compared": 60,
+    "different_paths": [],
+    "comparison": "SHA-256 per source file against the pre-repair isolated source copy.",
+    "manifest_sha256": "3c7c6a37cb9d5fb2a7169bdf260373603b543fc3ff077aee5300f453e6131f26"
+  },
+  "isolation": {
+    "synthetic_transcripts_only": true,
+    "temporary_fixture_directories_remaining": 0,
+    "real_chat_transcripts_read": false,
+    "real_approval_commands_executed": false,
+    "live_provider_configuration_changed": false,
+    "production_approval_rules_changed": false
+  },
+  "verification_limits": "These five relevant scripts were rerun. The full original twenty-script audit suite, real-provider application integration, Intel and macOS 14 testing were not rerun.",
+  "documentation": [
+    "Tests/Verification/README.md",
+    "docs/开源前体检-2026-10-30.md"
+  ]
+}

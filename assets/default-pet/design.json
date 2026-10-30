@@ -1,0 +1,12 @@
+{
+  "name": "老板鼠",
+  "role": "灵宠岛空闲和未连接来源应用时的默认灵宠",
+  "tool": "image_gen built-in",
+  "asset": "灵宠岛-默认灵宠-老板鼠.png",
+  "styleReferences": [
+    "当前 Codex 瓶盖汤姆 idle 帧",
+    "当前 Qoder Q达鸭 idle 帧"
+  ],
+  "prompt": "Use case: stylized-concept\nAsset type: production default mascot sprite for a tiny macOS menu-bar island, transparent PNG, one character, square canvas.\nInput images: Image 1 is the existing Codex Tom pet, Image 2 is the existing Qoder yellow duck. Both are STYLE AND SCALE REFERENCES ONLY, not edit targets. Make a new brown mouse mascot matching their rounded chunky, slightly pixel-soft, painted desktop-pet style.\nPrimary request: A Jerry-the-mouse-inspired mean big boss, the boss of a team of other AI pets doing his work. Recognizable warm brown mouse, oversized round ears with peach inner ears, cream muzzle, small black nose. Big head, tiny body, squat compact silhouette. Half-lidded judging eyes, one eyebrow arched, a small smug crooked smile: stern, picky and comically arrogant. Arms folded like an impatient boss checking his staff.\nClothes: simple charcoal-gray business jacket over light cream shirt, tiny dark red tie; minimal bold shapes, readable against a black island. Character should still clearly look like Jerry rather than a generic realistic rat.\nStyle/medium: match references: compact chibi desktop companion, smooth rounded hand-painted shading with slightly pixel-soft edges, strong cartoon facial features. No vector-logo outlines, no glossy 3D plastic, no realistic fur. Main head and face dominant, eyes and eyebrows legible at 20–32pt. Front view turned very slightly to the right.\nComposition: single mascot centered, ears and folded arms entirely in frame, no cut-offs, tight framing with about 4% transparent margin, head takes most of the height and width. No additional characters, no laptop, no furniture, no ground shadow, no badge, no text, no symbols, no watermark. Genuinely transparent alpha background.",
+  "displayPolicy": "仅无可见会话时显示；来源会话继续使用对应应用的宠物。沿用现有悬停缩放，不新增持续动画。"
+}

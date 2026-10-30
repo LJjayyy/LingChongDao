@@ -1,0 +1,20 @@
+.build/
+dist/
+.DS_Store
+*.log
+.swiftpm/
+
+!docs/evidence/*.log
+
+# Local production work and artwork backups are not source releases.
+/local-assets.noindex/
+/promo/
+
+# Historical screenshots may contain third-party pet artwork.
+/docs/design/compact-app-icon-2026-10-28/*.png
+/docs/design/connections-2026-10-26/*.png
+/docs/design/menu-bar-icon-2026-10-28/*.png
+/docs/evidence/close-button-placement.png
+/docs/evidence/navigation-performance/*.png
+/docs/evidence/question-native.png
+/docs/evidence/settings-native.png

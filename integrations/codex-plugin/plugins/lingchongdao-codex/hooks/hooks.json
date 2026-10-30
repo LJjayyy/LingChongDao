@@ -1,0 +1,125 @@
+{
+  "description": "灵宠岛本地 Codex 连接：同步状态；只有用户对当前权限请求明确作出决定时才返回审批结果。",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"${PLUGIN_ROOT}/scripts/forward-hook.sh\"",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步会话开始"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"${PLUGIN_ROOT}/scripts/forward-hook.sh\"",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步新任务"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"${PLUGIN_ROOT}/scripts/forward-hook.sh\"",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步工具开始"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"${PLUGIN_ROOT}/scripts/forward-hook.sh\"",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步工具结果"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"${PLUGIN_ROOT}/scripts/forward-hook.sh\" --approval",
+            "timeout": 60,
+            "statusMessage": "灵宠岛 · 处理权限请求"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"${PLUGIN_ROOT}/scripts/forward-hook.sh\"",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步本轮结束"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"${PLUGIN_ROOT}/scripts/forward-hook.sh\"",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步会话结束"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"${PLUGIN_ROOT}/scripts/forward-hook.sh\"",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步子任务开始"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"${PLUGIN_ROOT}/scripts/forward-hook.sh\"",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步子任务结束"
+          }
+        ]
+      }
+    ],
+    "Interrupt": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/sh \"${PLUGIN_ROOT}/scripts/forward-hook.sh\"",
+            "timeout": 3,
+            "statusMessage": "灵宠岛 · 同步任务中断"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "lingchongdao-local",
+  "interface": {
+    "displayName": "灵宠岛本地插件"
+  },
+  "plugins": [
+    {
+      "name": "lingchongdao-codex",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lingchongdao-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

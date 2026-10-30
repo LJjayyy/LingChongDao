@@ -1,0 +1,78 @@
+{
+  "date": "2026-10-30",
+  "choice": "Keep the existing boss-mouse artwork locally and exclude it from public source; no replacement mascot adopted.",
+  "source_snapshot_files_at_clean_build": 213,
+  "private_files_preserved_in_backup": 26,
+  "original_asset_files_unchanged": 21,
+  "original_plugin_icon_preserved": "7dc7ebaa22c881b51bc82ae340fe56937dfba015eb7930a40e18e791d6233f9a",
+  "public_plugin_icon": "b5432cfbda4e87927bd1603b7c85a3b7fa425b485489c85da9d2c32941dd809c",
+  "public_candidate_private_hash_matches": 0,
+  "excluded_directories": [
+    "assets/default-pet",
+    "assets/app-icon",
+    "promo",
+    "local-assets.noindex"
+  ],
+  "public_icon_origin": "Original geometric shapes rendered by scripts/PublicArtwork.swift, no external image input",
+  "fresh_public_release_build": true,
+  "codex_plugin_contract_tests_per_build": 17,
+  "profile_verification": [
+    {
+      "check": "public-resources-and-5-plugin-archives",
+      "passed": true
+    },
+    {
+      "check": "missing-private-inputs",
+      "exit_code": 1
+    },
+    {
+      "check": "public-resources-and-5-plugin-archives",
+      "passed": true
+    },
+    {
+      "check": "local-artwork-build",
+      "exit_code": 0
+    },
+    {
+      "check": "local-only-resources-and-5-plugin-archives",
+      "passed": true
+    },
+    {
+      "check": "public-after-local-build",
+      "exit_code": 0
+    },
+    {
+      "check": "public-resources-and-5-plugin-archives",
+      "passed": true
+    },
+    {
+      "check": "codex-plugin-installation",
+      "exit_code": 0
+    }
+  ],
+  "runtime_render": {
+    "public_app": {
+      "visible_pixels": 10680,
+      "colored_pixels": 0,
+      "source_private_artwork_present": true
+    },
+    "local_app": {
+      "visible_pixels": 21234,
+      "colored_pixels": 18214
+    }
+  },
+  "signatures_verified": [
+    "fresh public",
+    "local-only",
+    "public after local-only"
+  ],
+  "installed_user_app_modified": false,
+  "live_provider_configuration_modified": false,
+  "scope_note": "Excluding private artwork does not grant redistribution rights to local-only app packages or promotional materials.",
+  "menu_runtime_checks": {
+    "missing_bundle_icon_uses_system_fallback": true,
+    "public_bundle_icon": true,
+    "local_bundle_original_icon": true
+  },
+  "final_public_build_after_menu_isolation": true
+}

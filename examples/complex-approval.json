@@ -1,0 +1,1 @@
+{"hook_event_name":"PermissionRequest","session_id":"example-complex","tool_use_id":"example-file-change","title":"验证复杂审批","tool_name":"FileChange","description":"工作区外的文件变更需要完整审阅","tool_input":{"path":"/Projects/example/settings.json"}}

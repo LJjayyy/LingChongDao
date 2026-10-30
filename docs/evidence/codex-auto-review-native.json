@@ -1,0 +1,9 @@
+{
+  "app_version": "0.1.39",
+  "helper": "unchanged bundled Codex plugin helper",
+  "reviewer": "auto_review",
+  "empty_decision": true,
+  "reached_app_routing_guard": true,
+  "elapsed_seconds": 0.048,
+  "executes_test_command": false
+}

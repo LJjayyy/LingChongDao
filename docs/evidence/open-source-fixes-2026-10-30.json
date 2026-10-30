@@ -1,0 +1,336 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Asia/Shanghai",
+  "scope": "Local remediation after the open-source recheck; no commits or remote configured",
+  "status": "complete_for_local_remediation",
+  "app_version": "0.1.40",
+  "app_build": "41",
+  "modified_files": [
+    ".github/workflows/release.yml",
+    "README.md",
+    "Sources/LingChongDao/Connections/CodexPluginService.swift",
+    "Sources/LingChongDao/Views/WorkbenchView.swift",
+    "Tests/CodexPluginVerification/main.swift",
+    "docs/CORE-CONTRACT.md",
+    "docs/CodeBuddy-CN与WorkBuddy接入调研.md",
+    "docs/DMG-安装说明.txt",
+    "docs/RELEASE-NOTES.md",
+    "docs/evidence/README.md",
+    "docs/evidence/application-verification.log",
+    "docs/evidence/core-verification.log",
+    "docs/evidence/open-source-recheck-2026-10-30.json",
+    "docs/evidence/qoder-path-regression.log",
+    "docs/保持唤醒.md",
+    "docs/发布DMG.md",
+    "docs/名称与兼容迁移.md",
+    "docs/开源前复检-2026-10-30.md",
+    "integrations/codex-plugin/README.md",
+    "scripts/build-app.sh",
+    "scripts/package-dmg.sh",
+    "scripts/verify-connection-layout.sh",
+    "scripts/verify-motion.sh",
+    "scripts/verify-workbench-navigation.sh"
+  ],
+  "added_files": [
+    ".github/workflows/ci.yml",
+    "CONTRIBUTING.md",
+    "PRIVACY.md",
+    "SECURITY.md",
+    "docs/evidence/open-source-fixes-2026-10-30.json",
+    "docs/卸载与数据清理.md",
+    "examples/README.md",
+    "scripts/verify-all.sh",
+    "scripts/verify-public-source.py"
+  ],
+  "verification": {
+    "scripts": [
+      {
+        "script": "scripts/verify.sh",
+        "passed": true,
+        "summary": [
+          "PASS An unowned executable is not replaced",
+          "43 passed; 0 failed. No live provider configuration was modified."
+        ]
+      },
+      {
+        "script": "scripts/verify-runtime-identity.sh",
+        "passed": true,
+        "summary": [
+          "Runtime identity verification: 27 checks passed"
+        ]
+      },
+      {
+        "script": "scripts/verify-codex-plugin-install.sh",
+        "passed": true,
+        "summary": [
+          "PASS: missing source/app-only/malformed config/install/migration/failure retention/idempotency/disabled/uninstall/upgrade/interruption recovery/foreign marketplace/output limit/helper hash/symlink"
+        ]
+      },
+      {
+        "script": "scripts/verify-application.sh",
+        "passed": true,
+        "summary": [
+          "PASS Source tool completion cancels the pending hook safely",
+          "89 application checks passed. No real provider configuration changed."
+        ]
+      },
+      {
+        "script": "scripts/verify-expired-requests.sh",
+        "passed": true,
+        "summary": [
+          "PASS Expired history never keeps approval priority",
+          "16 expired-request checks passed. No real approvals or source configuration were changed."
+        ]
+      },
+      {
+        "script": "scripts/verify-approval-observation.sh",
+        "passed": true,
+        "summary": [
+          "PASS Permission observation does not discard a real source question",
+          "PASS: 19 approval observation checks; synthetic AppModel only"
+        ]
+      },
+      {
+        "script": "scripts/verify-codex-approvals.sh",
+        "passed": true,
+        "summary": [
+          "PASS 32 Codex approval checks: real helper sockets, parallel requests, allow, deny, fallback, timeout, source cancellation, stale UI"
+        ]
+      },
+      {
+        "script": "scripts/verify-claude-approvals.sh",
+        "passed": true,
+        "summary": [
+          "PASS 13 Claude approval checks: real helper sockets, parallel requests, allow, deny, fallback, timeout, source cancellation, stale UI"
+        ]
+      },
+      {
+        "script": "scripts/verify-qoder-approvals.sh",
+        "passed": true,
+        "summary": [
+          "PASS 22 Qoder status checks: observation-only, native lifecycle, stale controls, host coverage, safe output"
+        ]
+      },
+      {
+        "script": "scripts/verify-codex-questions.sh",
+        "passed": true,
+        "summary": [
+          "PASS: Codex sync/async question lifecycle, exact replies, partial answers, titles and unrelated activity"
+        ]
+      },
+      {
+        "script": "scripts/verify-navigation.sh",
+        "passed": true,
+        "summary": [
+          "PASS: 60 navigation checks"
+        ]
+      },
+      {
+        "script": "scripts/verify-status-summary.sh",
+        "passed": true,
+        "summary": [
+          "PASS: 14 status summary checks"
+        ]
+      },
+      {
+        "script": "scripts/verify-source-attention.sh",
+        "passed": true,
+        "summary": [
+          "PASS A verified Codex desktop session opens its exact application",
+          "44 source attention checks passed. Only synthetic sessions and isolated preferences were used."
+        ]
+      },
+      {
+        "script": "scripts/verify-attention-reveal.sh",
+        "passed": true,
+        "summary": [
+          "PASS a failed task pulls the island down (attention set: 1)",
+          "attention-reveal verification passed (22 checks)"
+        ]
+      },
+      {
+        "script": "scripts/verify-pets.sh",
+        "passed": true,
+        "summary": [
+          "PASS 44 pet source checks; synthetic fixtures only"
+        ]
+      },
+      {
+        "script": "scripts/verify-origins.sh",
+        "passed": true,
+        "summary": [
+          "PASS 78 source application checks; synthetic process records only"
+        ]
+      },
+      {
+        "script": "scripts/verify-clamshell-guard.sh",
+        "passed": true,
+        "summary": [
+          "PASS: 47 clamshell guard checks; fake shell power and fake authorization only"
+        ]
+      },
+      {
+        "script": "scripts/verify-keep-awake.sh",
+        "passed": true,
+        "summary": [
+          "PASS: 44 keep awake checks; fake backends only, no real power changes"
+        ]
+      },
+      {
+        "script": "scripts/verify-compact-window.sh",
+        "passed": true,
+        "summary": [
+          "PASS 63 compact geometry and hover state checks; synthetic displays only"
+        ]
+      },
+      {
+        "script": "scripts/verify-motion.sh",
+        "passed": true,
+        "summary": [
+          "PASS 9/9 native motion synchronization checks; offscreen fixtures only",
+          "PASS 9/9 native presentation top-anchor checks; not FPS"
+        ]
+      },
+      {
+        "script": "scripts/verify-pet-renderer.sh",
+        "passed": true,
+        "summary": [
+          "PASS A newly missing selected pet clears the prior appearance and frames",
+          "Pet renderer verification passed. No source application configuration was changed."
+        ]
+      },
+      {
+        "script": "scripts/verify-boss-pet-motion.sh",
+        "passed": true,
+        "summary": [
+          "PASS boss pet 16-frame timeline, return states, Reduced Motion, and click coalescing"
+        ]
+      },
+      {
+        "script": "scripts/verify-connection-layout.sh",
+        "passed": true,
+        "summary": [
+          "PASS: page layout under250ms",
+          "PASS: page layout under250ms"
+        ]
+      },
+      {
+        "script": "scripts/verify-workbench-navigation.sh",
+        "passed": true,
+        "summary": [
+          "PASS navigation stalls <100ms at both widths",
+          "PASS all 24 verification scripts"
+        ]
+      }
+    ],
+    "total": 24,
+    "passed": 24,
+    "failed": 0,
+    "real_claude_cli_probe_run": false,
+    "full_xcode_xctest_run": false
+  },
+  "codex_missing_source": {
+    "before_exit_code": 133,
+    "before_symptom": "Missing source was reported as configurationError",
+    "regression_cases": [
+      "missing app and CLI",
+      "app installed without CLI",
+      "malformed existing config is still an error"
+    ],
+    "after_passed": true
+  },
+  "motion": {
+    "missing_compile_source_added": true,
+    "production_animation_changed": false,
+    "original_threshold_unchanged": true,
+    "first_run_during_parallel_compilation": "8/9 synchronization; 9/9 top-anchor",
+    "quiet_standalone": "9/9 synchronization; 9/9 top-anchor",
+    "full_sequential_suite": "9/9 synchronization; 9/9 top-anchor"
+  },
+  "public_preflight": {
+    "passed": true,
+    "synthetic_token_negative_control_passed": true,
+    "private_path_negative_control_passed": true,
+    "secret_values_not_printed": true,
+    "source_zip_without_git_metadata_passed": true,
+    "specialist_secret_scanner_used": false
+  },
+  "redaction": {
+    "public_files": 5,
+    "raw_originals_preserved_in_ignored_backup": true,
+    "fictional_test_paths_preserved": true
+  },
+  "brand": {
+    "mascot_and_logo_preserved": true,
+    "asset_hashes_unchanged": true,
+    "maintainer_distribution_choice_preserved": true
+  },
+  "workflows": {
+    "ci_added": true,
+    "release_uses_same_full_verification_entry": true,
+    "yaml_and_shell_syntax_passed": true,
+    "github_executed": false,
+    "private_vulnerability_reporting_enabled": false
+  },
+  "installed_app_modified": false,
+  "live_provider_configuration_modified": false,
+  "power_settings_modified": false,
+  "remaining_external_checks": [
+    "Create/push the GitHub repository and observe the first CI and tag release",
+    "Enable private vulnerability reporting in the published repository",
+    "Other Mac hardware / macOS 14 and full Xcode tests not performed locally"
+  ],
+  "material_source_note": "Existing mascot provenance is disclosed and retained at maintainer request; no third-party authorization was inferred.",
+  "clean_release_build": {
+    "passed": true,
+    "public_source_files": 255,
+    "private_inputs_present": false,
+    "plugin_contract_tests": 17
+  },
+  "dmg": {
+    "artifact": "dist/release/LingChongDao-0.1.40-macOS-arm64.dmg",
+    "bytes": 10987246,
+    "sha256": "8ba96562373595001c8074db3960d7bfbb0cd332a096cb1646423460f684da1a",
+    "checks": {
+      "sha256": true,
+      "contains_安装说明.txt": true,
+      "contains_LICENSE.txt": true,
+      "contains_THIRD_PARTY_NOTICES.md": true,
+      "contains_PRIVACY.md": true,
+      "contains_SECURITY.md": true,
+      "contains_docs/卸载与数据清理.md": true,
+      "privacy_matches_source": true,
+      "uninstall_matches_source": true,
+      "applications_link": true,
+      "copied_app_signature": true,
+      "version": true,
+      "public_profile": true,
+      "boss-mouse.png": true,
+      "boss-mouse-actions.png": true,
+      "boss-mouse-performance.png": true,
+      "boss-mouse-performance.json": true,
+      "AppIcon.icns": true,
+      "MenuBarIcon.png": true,
+      "LingChongDaoCodexPlugin-icon": true,
+      "LingChongDaoCodexPlugin-zip-icon": true,
+      "LingChongDaoCodexPlugin-no-audio-or-font": true,
+      "DshPlugin-icon": true,
+      "DshPlugin-zip-icon": true,
+      "DshPlugin-no-audio-or-font": true,
+      "QoderPlugin-icon": true,
+      "QoderPlugin-zip-icon": true,
+      "QoderPlugin-no-audio-or-font": true,
+      "ZcodePlugin-icon": true,
+      "ZcodePlugin-zip-icon": true,
+      "ZcodePlugin-no-audio-or-font": true,
+      "ClaudePlugin-icon": true,
+      "ClaudePlugin-zip-icon": true,
+      "ClaudePlugin-no-audio-or-font": true,
+      "copied_helper_runs": true
+    },
+    "all_passed": true,
+    "mounted_then_detached": true,
+    "simulated_copy_install": true
+  },
+  "public_candidate_files": 256
+}

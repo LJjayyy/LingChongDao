@@ -1,0 +1,219 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Asia/Shanghai",
+  "scope": "Working tree before adding this audit report; current Git ignore rules; no HEAD commit",
+  "environment": {
+    "architecture": "arm64",
+    "swift": "Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+    "toolchain": "Command Line Tools",
+    "full_xcode_xctest_run": false
+  },
+  "inventory": {
+    "candidate_files": 1234,
+    "candidate_bytes": 94908797,
+    "by_top_directory": {
+      ".gitignore": {
+        "files": 1,
+        "bytes": 62
+      },
+      "Package.swift": {
+        "files": 1,
+        "bytes": 1903
+      },
+      "README.md": {
+        "files": 1,
+        "bytes": 22709
+      },
+      "Sources": {
+        "files": 60,
+        "bytes": 610970
+      },
+      "Tests": {
+        "files": 30,
+        "bytes": 423485
+      },
+      "assets": {
+        "files": 21,
+        "bytes": 9392973
+      },
+      "docs": {
+        "files": 50,
+        "bytes": 2210340
+      },
+      "examples": {
+        "files": 4,
+        "bytes": 901
+      },
+      "integrations": {
+        "files": 29,
+        "bytes": 396533
+      },
+      "promo": {
+        "files": 1007,
+        "bytes": 81811303
+      },
+      "scripts": {
+        "files": 30,
+        "bytes": 37618
+      }
+    },
+    "personal_absolute_path_files": 19,
+    "personal_absolute_path_lines": 48
+  },
+  "static_checks": {
+    "json_files": 36,
+    "invalid_json_files": 0,
+    "shell_scripts_bash_syntax_checked": 33,
+    "shell_syntax_failures": 0,
+    "missing_relative_markdown_link_targets": 0,
+    "credential_pattern_hits": 0,
+    "credential_scan": "Heuristic text patterns only, skips binary files and files larger than 8 MiB; no Gitleaks or TruffleHog"
+  },
+  "release_build": {
+    "command": "./scripts/build-app.sh release",
+    "exit_code": 0,
+    "clean_source_copy": true,
+    "existing_build_outputs_copied": false,
+    "architecture": "arm64",
+    "app_version": "0.1.39",
+    "app_build": "40",
+    "embedded_codex_plugin_contract_tests": 17,
+    "embedded_codex_plugin_contract_failures": 0,
+    "codesign_verify_deep_strict": true,
+    "signature": "adhoc",
+    "team_identifier": null
+  },
+  "verification": {
+    "total_scripts": 20,
+    "passed": 18,
+    "failed": 2,
+    "scripts": [
+      {
+        "script": "scripts/verify.sh",
+        "exit_code": 0,
+        "seconds": 19.6
+      },
+      {
+        "script": "scripts/verify-application.sh",
+        "exit_code": 1,
+        "seconds": 13.3
+      },
+      {
+        "script": "scripts/verify-runtime-identity.sh",
+        "exit_code": 0,
+        "seconds": 6.6
+      },
+      {
+        "script": "scripts/verify-codex-plugin-install.sh",
+        "exit_code": 0,
+        "seconds": 25.6
+      },
+      {
+        "script": "scripts/verify-codex-approvals.sh",
+        "exit_code": 0,
+        "seconds": 28.9
+      },
+      {
+        "script": "scripts/verify-claude-approvals.sh",
+        "exit_code": 0,
+        "seconds": 4.4
+      },
+      {
+        "script": "scripts/verify-qoder-approvals.sh",
+        "exit_code": 0,
+        "seconds": 8.7
+      },
+      {
+        "script": "scripts/verify-codex-questions.sh",
+        "exit_code": 0,
+        "seconds": 7.6
+      },
+      {
+        "script": "scripts/verify-approval-observation.sh",
+        "exit_code": 0,
+        "seconds": 10.4
+      },
+      {
+        "script": "scripts/verify-expired-requests.sh",
+        "exit_code": 133,
+        "seconds": 2.6
+      },
+      {
+        "script": "scripts/verify-navigation.sh",
+        "exit_code": 0,
+        "seconds": 2.0
+      },
+      {
+        "script": "scripts/verify-status-summary.sh",
+        "exit_code": 0,
+        "seconds": 1.9
+      },
+      {
+        "script": "scripts/verify-source-attention.sh",
+        "exit_code": 0,
+        "seconds": 8.9
+      },
+      {
+        "script": "scripts/verify-attention-reveal.sh",
+        "exit_code": 0,
+        "seconds": 2.1
+      },
+      {
+        "script": "scripts/verify-pets.sh",
+        "exit_code": 0,
+        "seconds": 2.2
+      },
+      {
+        "script": "scripts/verify-origins.sh",
+        "exit_code": 0,
+        "seconds": 1.7
+      },
+      {
+        "script": "scripts/verify-clamshell-guard.sh",
+        "exit_code": 0,
+        "seconds": 16.3
+      },
+      {
+        "script": "scripts/verify-keep-awake.sh",
+        "exit_code": 0,
+        "seconds": 3.6
+      },
+      {
+        "script": "scripts/verify-boss-pet-motion.sh",
+        "exit_code": 0,
+        "seconds": 15.9
+      },
+      {
+        "script": "scripts/verify-compact-window.sh",
+        "exit_code": 0,
+        "seconds": 7.2
+      }
+    ]
+  },
+  "failures": [
+    {
+      "script": "scripts/verify-application.sh",
+      "source": "Tests/ApplicationVerification/ApplicationVerification.swift:329",
+      "message": "IDE denial reaches only IDE while desktop approval stays pending",
+      "cause": "Fixture expects interactive Qoder decisions after Qoder became observation-only."
+    },
+    {
+      "script": "scripts/verify-expired-requests.sh",
+      "source": "Tests/ExpiredRequestVerification/ExpiredRequestVerification.swift:27",
+      "message": "Unexpectedly found nil while unwrapping an Optional value",
+      "cause": "Codex fixture lacks current turn and reviewer metadata; AppModel returns fallback before creating the session; test force-unwraps missing session."
+    }
+  ],
+  "official_license_sources": [
+    "https://mixkit.co/license/#musicFree",
+    "https://mixkit.co/terms/",
+    "https://github.com/lxgw/LxgwWenKai/blob/v1.522/OFL.txt"
+  ],
+  "limits": [
+    "No live provider installation or trust changes",
+    "No full visual QA",
+    "No Intel hardware or macOS 14 hardware verification",
+    "No committed history available",
+    "No approval payload commands executed"
+  ]
+}

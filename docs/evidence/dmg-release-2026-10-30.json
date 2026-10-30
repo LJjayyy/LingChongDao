@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-30",
+  "reference": "https://github.com/LJjayyy/ClearZip/releases/tag/v1.0.0",
+  "artifact": "dist/release/LingChongDao-0.1.39-macOS-arm64.dmg",
+  "details": {
+    "version": "0.1.39",
+    "bytes": 11002289,
+    "sha256": "38dcfc956f10bc2f0af8987db276d9f83d17c6199fe3acf6101da386c07466cc"
+  },
+  "checks": {
+    "sha256": true,
+    "contains_灵宠岛.app": true,
+    "contains_Applications": true,
+    "contains_安装说明.txt": true,
+    "contains_LICENSE.txt": true,
+    "contains_THIRD_PARTY_NOTICES.md": true,
+    "applications_link": true,
+    "no_private_work": true,
+    "copied_app_signature": true,
+    "public_profile": true,
+    "boss-mouse.png": true,
+    "boss-mouse-actions.png": true,
+    "boss-mouse-performance.png": true,
+    "boss-mouse-performance.json": true,
+    "LingChongDaoCodexPlugin": true,
+    "DshPlugin": true,
+    "QoderPlugin": true,
+    "ZcodePlugin": true,
+    "ClaudePlugin": true,
+    "copied_helper_runs": true
+  },
+  "all_passed": true,
+  "workflow_yaml_and_shell_syntax_valid": true,
+  "github_workflow_executed": false,
+  "published_to_github": false,
+  "installed_app_replaced": false,
+  "signature": "adhoc",
+  "no_developer_toolchain_required_for_users": true,
+  "official_action_pins_and_inputs_verified": true
+}

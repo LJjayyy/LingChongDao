@@ -1,0 +1,8 @@
+# 灵宠岛 · DeepSeek Harness 活动上报
+#
+# This package is a dsh profile bundle: selecting it applies this layer, which
+# mounts the observer row. The plugin defaults `helperPath`/`socketPath` from
+# `$HOME`, so a profile needs no per-install configuration.
+- insert:
+    - id: lingchongdao-hooks
+      name: 'lingchongdao-dsh-hooks'

@@ -1,0 +1,24 @@
+{
+  "name": "lingchongdao-codex",
+  "version": "0.1.6",
+  "description": "把本机 Codex 会话状态和可处理的权限请求连接到灵宠岛。附带原生 helper；Mac 应用须运行，安装后仍须人工审查 Hook。",
+  "author": {
+    "name": "灵宠岛"
+  },
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "logo": "./assets/icon.png",
+    "logoDark": "./assets/icon.png",
+    "brandColor": "#A76C43",
+    "displayName": "灵宠岛",
+    "shortDescription": "让 Codex 灵宠在岛上同步工作与权限请求",
+    "longDescription": "通过包内原生 helper 同步 Codex 会话、工具和子任务状态，并等待用户处理可验证的权限请求。推荐从灵宠岛的一键安装入口接入；安装成功后迁移旧直接 Hook。灵宠岛未运行时交回 Codex 正常处理。首次安装后仍需在 Codex 中审查 Hook。",
+    "developerName": "灵宠岛",
+    "category": "Productivity",
+    "capabilities": [
+      "同步任务状态",
+      "同步工具与子任务活动",
+      "处理可验证的权限请求"
+    ]
+  }
+}

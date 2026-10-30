@@ -1,0 +1,45 @@
+Building for debugging...
+[2 / 8] IslandConnections
+[4 / 10] IslandConnections
+[8 / 13] ai-island-verify-product
+<USER_HOME>/Documents/mac自研小工具/AIIsland/Package.swift: IslandConnections: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[13 / 16] ai-island-verify-product
+<USER_HOME>/Documents/mac自研小工具/AIIsland/Package.swift: ai-island-verify-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+<USER_HOME>/Documents/mac自研小工具/AIIsland/Package.swift: ai-island-verify-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[15 / 16] ai-island-verify-product
+Build complete! (1.38秒)
+PASS Provider, host, session and fork identities remain isolated
+PASS Question, approval, failure, completion and running priority
+PASS Stop is neutral; subagent completion cannot finish the main task
+PASS A failed tool call does not become whole-task failure
+PASS Duplicate and delayed requests cannot overwrite the current request
+PASS PreToolUse preserves pending approval; matching PostToolUse resolves it
+PASS Simple approvals require full preview; complex approvals remain deny-only
+PASS Unsupported providers and questions return to their original tool
+PASS Expiration disables actions and permits dismissing stale cards
+PASS Live requests and running tasks cannot be dismissed
+PASS Both provider hook responses use allow/deny; fallback never allows
+PASS Split newline frames decode; oversized and empty frames are rejected
+PASS Socket permissions, ping correlation, single owner and cleanup
+PASS Socket timeout falls back and notifies the model before late allow
+PASS Socket disconnect notifies the model and cannot approve
+PASS Qoder CN uses its own default configuration directory
+PASS Qoder CN environment paths honor override precedence and relative paths
+PASS Qoder CN rejects invalid directory names and normalizes Unicode
+PASS Legacy Qoder hooks migrate to CN while unrelated settings and backups survive
+PASS A changed legacy configuration cancels migration before creating CN hooks
+PASS Interrupted legacy cleanup retains historical commands so migration can retry
+PASS Install/remove retain unrelated configuration and are idempotent
+PASS Malformed configuration is rejected without silent replacement
+PASS Hook paths are shell-escaped and permission waiting is bounded
+PASS Inspection does not mistake unrelated hooks for this installation
+PASS Inspection detects modified hook matcher, type or timeout
+PASS Installation preserves a backup and original file mode
+PASS A changed reviewed configuration is not overwritten
+PASS Configuration symlinks are refused without touching their target
+PASS Custom parent-directory symlinks remain refused
+PASS A temporary-home Codex install never changes trust configuration
+PASS Installation requires preparation and detects helper changes
+PASS An unowned executable is not replaced
+
+33 passed; 0 failed. No live provider configuration was modified.

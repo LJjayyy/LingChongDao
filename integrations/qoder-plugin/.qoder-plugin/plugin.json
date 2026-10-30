@@ -1,0 +1,11 @@
+{
+  "name": "lingchongdao-qoder",
+  "version": "0.1.2",
+  "displayName": "灵宠岛",
+  "description": "同步 Qoder CN 的会话、工具活动与等待权限状态到灵宠岛；权限确认在 Qoder 处理。",
+  "author": {
+    "name": "灵宠岛"
+  },
+  "logo": "./assets/icon.png",
+  "hooks": "./.qoder-plugin/qoder-hooks.json"
+}

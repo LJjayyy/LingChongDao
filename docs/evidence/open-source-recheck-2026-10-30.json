@@ -1,0 +1,276 @@
+{
+  "date": "2026-10-30",
+  "timezone": "Asia/Shanghai",
+  "scope": "Working tree with no HEAD commit or remote; isolated public-source copies; mascot included at maintainer request",
+  "inventory": {
+    "clean_final_build_snapshot_files": 239,
+    "clean_final_build_snapshot_bytes": 11203825,
+    "promo_included": false,
+    "local_asset_backups_included": false,
+    "mascot_assets_included": true,
+    "final_candidate_files_including_report": 247
+  },
+  "static_checks": {
+    "invalid_json_files": [],
+    "shell_syntax_failures": [],
+    "missing_markdown_relative_links": [],
+    "credential_heuristic_hits": [],
+    "real_maintainer_path_files": [
+      "docs/CodeBuddy-CN与WorkBuddy接入调研.md",
+      "docs/evidence/application-verification.log",
+      "docs/evidence/core-verification.log",
+      "docs/evidence/qoder-path-regression.log",
+      "docs/保持唤醒.md"
+    ],
+    "credential_scan_limit": "UTF-8 text heuristics only; no specialist scanner or commit history"
+  },
+  "release": {
+    "fresh_source_build": true,
+    "no_private_assets_required": true,
+    "app_version": "0.1.39",
+    "architecture": "arm64",
+    "plugin_contract_tests": 17,
+    "codesign_verify_deep_strict": true,
+    "signature": "adhoc",
+    "team_identifier": null,
+    "spctl_assessment": "rejected",
+    "spctl_exit_code": 3,
+    "dmg_followup": {
+      "reference": "https://github.com/LJjayyy/ClearZip/releases/tag/v1.0.0",
+      "package_script": "scripts/package-dmg.sh",
+      "workflow": ".github/workflows/release.yml",
+      "local_dmg_verified": true,
+      "developer_id_not_a_release_prerequisite": true,
+      "github_published": false,
+      "evidence": "docs/evidence/dmg-release-2026-10-30.json"
+    }
+  },
+  "branding": {
+    "app_version": "0.1.39",
+    "checks": {
+      "public_profile": true,
+      "boss-mouse.png": true,
+      "boss-mouse-actions.png": true,
+      "boss-mouse-performance.png": true,
+      "boss-mouse-performance.json": true,
+      "AppIcon.icns": true,
+      "MenuBarIcon.png": true,
+      "LingChongDaoCodexPlugin-icon": true,
+      "LingChongDaoCodexPlugin-notice": true,
+      "LingChongDaoCodexPlugin-zip-icon": true,
+      "LingChongDaoCodexPlugin-zip-no-audio": true,
+      "DshPlugin-icon": true,
+      "DshPlugin-notice": true,
+      "DshPlugin-zip-icon": true,
+      "DshPlugin-zip-no-audio": true,
+      "QoderPlugin-icon": true,
+      "QoderPlugin-notice": true,
+      "QoderPlugin-zip-icon": true,
+      "QoderPlugin-zip-no-audio": true,
+      "ZcodePlugin-icon": true,
+      "ZcodePlugin-notice": true,
+      "ZcodePlugin-zip-icon": true,
+      "ZcodePlugin-zip-no-audio": true,
+      "ClaudePlugin-icon": true,
+      "ClaudePlugin-notice": true,
+      "ClaudePlugin-zip-icon": true,
+      "ClaudePlugin-zip-no-audio": true,
+      "no_private_assets": true
+    },
+    "all_passed": true,
+    "icon_sha256": "7dc7ebaa22c881b51bc82ae340fe56937dfba015eb7930a40e18e791d6233f9a"
+  },
+  "ui_checks": {
+    "isolated_app_with_distinct_bundle_id": true,
+    "fresh_workbench_displays_mascot": true,
+    "mascot_click_changes_greeting": true,
+    "no_source_cli_codex_shows_repair": true,
+    "readme_approval_fixture": {
+      "hook_stdout": {},
+      "diagnostic": "审批由 Codex 处理，灵宠岛不代替来源作决定。",
+      "active_or_unread_before": 0,
+      "active_or_unread_after": 0
+    },
+    "preview_exited": true,
+    "installed_app_replaced": false,
+    "live_provider_configuration_modified": false,
+    "power_state_modified": false
+  },
+  "verification": {
+    "total_scripts": 24,
+    "passed": 23,
+    "failed": 1,
+    "scripts": [
+      {
+        "script": "scripts/verify.sh",
+        "exit_code": 0,
+        "seconds": 19.4,
+        "invocation": "/bin/bash scripts/verify.sh"
+      },
+      {
+        "script": "scripts/verify-application.sh",
+        "exit_code": 0,
+        "seconds": 13.9,
+        "invocation": "/bin/bash scripts/verify-application.sh"
+      },
+      {
+        "script": "scripts/verify-approval-observation.sh",
+        "exit_code": 0,
+        "seconds": 5.1,
+        "invocation": "/bin/bash scripts/verify-approval-observation.sh"
+      },
+      {
+        "script": "scripts/verify-attention-reveal.sh",
+        "exit_code": 0,
+        "seconds": 24.8,
+        "invocation": "/bin/bash scripts/verify-attention-reveal.sh"
+      },
+      {
+        "script": "scripts/verify-boss-pet-motion.sh",
+        "exit_code": 0,
+        "seconds": 15.2,
+        "invocation": "/bin/bash scripts/verify-boss-pet-motion.sh"
+      },
+      {
+        "script": "scripts/verify-clamshell-guard.sh",
+        "exit_code": 0,
+        "seconds": 16.3,
+        "invocation": "/bin/bash scripts/verify-clamshell-guard.sh"
+      },
+      {
+        "script": "scripts/verify-claude-approvals.sh",
+        "exit_code": 0,
+        "seconds": 8.4,
+        "invocation": "/bin/bash scripts/verify-claude-approvals.sh"
+      },
+      {
+        "script": "scripts/verify-codex-approvals.sh",
+        "exit_code": 0,
+        "seconds": 9.8,
+        "invocation": "/bin/bash scripts/verify-codex-approvals.sh"
+      },
+      {
+        "script": "scripts/verify-codex-plugin-install.sh",
+        "exit_code": 0,
+        "seconds": 30.5,
+        "invocation": "/bin/bash scripts/verify-codex-plugin-install.sh"
+      },
+      {
+        "script": "scripts/verify-codex-questions.sh",
+        "exit_code": 0,
+        "seconds": 1.7,
+        "invocation": "/bin/bash scripts/verify-codex-questions.sh"
+      },
+      {
+        "script": "scripts/verify-compact-window.sh",
+        "exit_code": 0,
+        "seconds": 6.9,
+        "invocation": "/bin/bash scripts/verify-compact-window.sh"
+      },
+      {
+        "script": "scripts/verify-connection-layout.sh",
+        "exit_code": 0,
+        "seconds": 9.5,
+        "invocation": "/bin/bash scripts/verify-connection-layout.sh"
+      },
+      {
+        "script": "scripts/verify-expired-requests.sh",
+        "exit_code": 0,
+        "seconds": 2.3,
+        "invocation": "/bin/bash scripts/verify-expired-requests.sh"
+      },
+      {
+        "script": "scripts/verify-keep-awake.sh",
+        "exit_code": 0,
+        "seconds": 3.3,
+        "invocation": "/bin/bash scripts/verify-keep-awake.sh"
+      },
+      {
+        "script": "scripts/verify-motion.sh",
+        "exit_code": 1,
+        "seconds": 28.1,
+        "invocation": "/bin/bash scripts/verify-motion.sh"
+      },
+      {
+        "script": "scripts/verify-navigation.sh",
+        "exit_code": 0,
+        "seconds": 1.9,
+        "invocation": "/bin/bash scripts/verify-navigation.sh"
+      },
+      {
+        "script": "scripts/verify-origins.sh",
+        "exit_code": 0,
+        "seconds": 2.3,
+        "invocation": "/bin/bash scripts/verify-origins.sh"
+      },
+      {
+        "script": "scripts/verify-pet-renderer.sh",
+        "exit_code": 0,
+        "seconds": 3.3,
+        "invocation": "/bin/bash scripts/verify-pet-renderer.sh"
+      },
+      {
+        "script": "scripts/verify-pets.sh",
+        "exit_code": 0,
+        "seconds": 0.0,
+        "invocation": "./scripts/verify-pets.sh",
+        "note": "Rechecked using the declared /bin/zsh interpreter; forcing Bash was a harness error."
+      },
+      {
+        "script": "scripts/verify-qoder-approvals.sh",
+        "exit_code": 0,
+        "seconds": 7.2,
+        "invocation": "/bin/bash scripts/verify-qoder-approvals.sh"
+      },
+      {
+        "script": "scripts/verify-runtime-identity.sh",
+        "exit_code": 0,
+        "seconds": 6.3,
+        "invocation": "/bin/bash scripts/verify-runtime-identity.sh"
+      },
+      {
+        "script": "scripts/verify-source-attention.sh",
+        "exit_code": 0,
+        "seconds": 8.0,
+        "invocation": "/bin/bash scripts/verify-source-attention.sh"
+      },
+      {
+        "script": "scripts/verify-status-summary.sh",
+        "exit_code": 0,
+        "seconds": 1.7,
+        "invocation": "/bin/bash scripts/verify-status-summary.sh"
+      },
+      {
+        "script": "scripts/verify-workbench-navigation.sh",
+        "exit_code": 0,
+        "seconds": 106.1,
+        "invocation": "/bin/bash scripts/verify-workbench-navigation.sh"
+      }
+    ]
+  },
+  "findings": [
+    "verify-motion.sh omits SwipeDismissRow.swift and fails to compile",
+    "README approval demo and CORE-CONTRACT are stale",
+    "Real maintainer paths remain in public docs and logs",
+    "Privacy, cleanup, security reporting, contribution guidance and CI are incomplete",
+    "Two verification entry points have mode 0644",
+    "Missing Codex CLI is presented as configuration repair",
+    "Mascot design references Jerry; redistribution authorization evidence remains unverified; maintainer chose public inclusion"
+  ],
+  "limits": [
+    "No full Xcode XCTest",
+    "No Intel or macOS 14 hardware check",
+    "No full provider live integration",
+    "No real plugin install or trust changes",
+    "No fresh Internet download flow on another Mac",
+    "verify-claude-plugin.sh requires a real Claude CLI and was not run"
+  ],
+  "resolved_followup": [
+    "DMG packaging, checksum and drag-to-Applications install instructions added",
+    "README now leads with the DMG user journey and separates developer requirements",
+    "Tag release workflow prepared with version, commit and artifact checks; not executed online",
+    "Ad hoc signature policy matches ClearZip; Developer ID and notarization are optional future improvements"
+  ],
+  "status_scope": "Historical recheck baseline; see remediation reference for current results",
+  "remediation_reference": "docs/evidence/open-source-fixes-2026-10-30.json"
+}

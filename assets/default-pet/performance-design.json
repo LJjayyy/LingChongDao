@@ -1,0 +1,31 @@
+{
+  "tool": "image_gen built-in",
+  "grid": {
+    "columns": 4,
+    "rows": 4
+  },
+  "frames": 16,
+  "prompt": "Use case: identity-preserve\nEdit target: the referenced boss mouse mascot. Keep the same recognizable warm-brown Jerry-inspired mouse, huge peach inner ears, cream muzzle, charcoal business jacket and burgundy red tie, rounded hand-painted desktop-pet style. Now push the personality toward broad slapstick cartoon comedy: comically self-important tiny manager, asymmetrical arched eyebrows, elastic cheeks, hilariously smug toothy crooked grin, exaggerated readable eyes and mouth. Funny and cheeky, not cute bland or realistic.\nDeliverable: one square TRANSPARENT animation sprite sheet, STRICT EXACT 4 columns x 4 rows, SIXTEEN equal square cells, row-major order. This is ONE continuous comical boss lecture, with genuine in-between drawings. Every cell shows the SAME character at EXACT SAME scale, camera, lighting, ear/head proportions and aligned foot baseline. Entire character fits in its own cell with 10% clear transparent margins, no overlap between cells. The character is short and wide, huge head and tiny body, no props. Transparent gutters, no grid lines, no words, no arrows, no frame labels, no borders, no ground shadows. 1600x1600 square canvas if possible; each cell 400x400.\nFrame 0: folded arms, very smug lopsided grin, one eyebrow raised, hunched self-important little boss.\nFrame 1: identical body, eyelids halfway down.\nFrame 2: identical body, both eyes completely closed in a blink.\nFrame 3: folded arms, eyes exaggeratedly wide, brows way up, head leans forward slightly: comic 'I saw you slacking' stare.\nFrame 4: lecture anticipation: knees bend slightly, shoulders scrunch, cheeks puff, head tilts backward; arms starting to loosen.\nFrame 5: elbow lifts away from folded arms, forearm starts rising, index finger still by chest, mouth starts opening.\nFrame 6: forearm halfway lifted, index finger halfway up beside face, increasingly indignant wide mouth; smooth in-between from frame5 to7.\nFrame 7: finger fully raised beside face, other arm folded, one eyebrow very high, open mouth like a comical boss beginning a lecture.\nFrame 8: finger points a little forward, head leans forward, mouth very wide in theatrical outrage, shoulders forward.\nFrame 9: raised finger wags to the left, head follows slightly, puffed cheek and stretched eyebrows.\nFrame 10: finger wags to the right, head follows slightly, broad funny mouth shape, elastic cartoon expression.\nFrame 11: last short forward finger jab, face extra self-important and ridiculous, not frightening.\nFrame 12: lecture winds down, finger lowers halfway toward chest, mouth closes into a smug grin.\nFrame 13: hand almost tucked back into folded arms, head returning upright, narrowed eyes.\nFrame 14: arms fully fold, shoulders settle with tiny comic overshoot, smug crooked grin.\nFrame 15: returns EXACTLY to frame0 neutral folded-arms pose, same shape and placement, to allow a clean loop.\nCritical production constraints: a real ordered 16-frame movement with small pose changes BETWEEN consecutive lecture frames 4-15; no repeated static poses as substitutes for in-betweens. No differently sized character copies. Preserve facial identity across all frames while exaggerating expressions. Same baseline, stable body location; only the intended limbs, head tilt and squash change. True alpha background, zero background color.",
+  "usedPlaybackFrames": [
+    0,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    8,
+    9,
+    11,
+    12,
+    13,
+    14,
+    0
+  ],
+  "normalization": "主体轮廓+2px裁切，336×336固定画布与16px底部基线，保持每帧原像素尺寸；原图未重绘",
+  "excludedFrames": {
+    "10": "举手侧反转",
+    "15": "嘴型与idle不一致"
+  },
+  "runtimeTiming": "14个时间段，每段80ms；连续变换由短时动画时间轴取样；不做整帧叠化"
+}

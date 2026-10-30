@@ -1,0 +1,1 @@
+{"hook_event_name":"PermissionRequest","session_id":"example-approval","tool_use_id":"example-pwd","title":"验证审批回传","tool_name":"Bash","cwd":"/Projects/example","tool_input":{"command":"pwd","description":"展示虚拟命令；本示例不会执行命令"}}

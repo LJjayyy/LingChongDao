@@ -1,0 +1,83 @@
+{
+  "date": "2026-10-30",
+  "strategy": "Exclude the local music master and promotional project from public source; preserve local production files.",
+  "track": {
+    "title": "Upbeat Jazz",
+    "author": "Francisco Alvear",
+    "mixkit_track_id": 644,
+    "source": "https://mixkit.co/free-stock-music/",
+    "license_name": "Mixkit Stock Music Free License",
+    "license_url": "https://mixkit.co/license/#musicFree",
+    "terms_url": "https://mixkit.co/terms/"
+  },
+  "local_files_before": {
+    "promo/2026-10-29/film/public/music/bgm.wav": {
+      "bytes": 5760044,
+      "sha256": "2cdb56708b0129aac5229da7ed30052533515a4b5b4b16bf9d771129604c416c"
+    },
+    "promo/2026-10-29/film/public/music/credit.txt": {
+      "bytes": 275,
+      "sha256": "fca3ad4d5baaff4b347ee6c744e919bcb38a93462069fab1e8b9af8d4ccdfc34"
+    },
+    "promo/2026-10-29/deliverables/灵宠岛-30秒宣传片.mp4": {
+      "bytes": 3560462,
+      "sha256": "a47fe1da5d40be9b28f5796ac7478b8a3eaa896ff21e23e5c5b2f19a46427876"
+    },
+    "promo/2026-10-29/deliverables/配乐来源与授权.txt": {
+      "bytes": 275,
+      "sha256": "fca3ad4d5baaff4b347ee6c744e919bcb38a93462069fab1e8b9af8d4ccdfc34"
+    }
+  },
+  "local_audio": {
+    "format": "PCM WAV",
+    "channels": 2,
+    "sample_rate": 48000,
+    "sample_width_bytes": 2,
+    "frames": 1440000,
+    "duration_seconds": 30.0
+  },
+  "source_verification": {
+    "candidate_files": 214,
+    "includes_cached_and_untracked": true,
+    "music_hash_matches": 0,
+    "audio_files": 0,
+    "bgm_ignored": true,
+    "final_candidate_files_after_documentation": 216,
+    "final_music_hash_matches": 0,
+    "final_audio_files": 0
+  },
+  "existing_verified_public_build_scan": {
+    "files": 55,
+    "plugin_zip_archives": 5,
+    "music_hash_matches": 0,
+    "audio_files": 0,
+    "rebuilt_for_this_document_only_change": false
+  },
+  "local_files_modified": false,
+  "local_files_after": {
+    "promo/2026-10-29/film/public/music/bgm.wav": {
+      "bytes": 5760044,
+      "sha256": "2cdb56708b0129aac5229da7ed30052533515a4b5b4b16bf9d771129604c416c"
+    },
+    "promo/2026-10-29/film/public/music/credit.txt": {
+      "bytes": 275,
+      "sha256": "fca3ad4d5baaff4b347ee6c744e919bcb38a93462069fab1e8b9af8d4ccdfc34"
+    },
+    "promo/2026-10-29/deliverables/灵宠岛-30秒宣传片.mp4": {
+      "bytes": 3560462,
+      "sha256": "a47fe1da5d40be9b28f5796ac7478b8a3eaa896ff21e23e5c5b2f19a46427876"
+    },
+    "promo/2026-10-29/deliverables/配乐来源与授权.txt": {
+      "bytes": 275,
+      "sha256": "fca3ad4d5baaff4b347ee6c744e919bcb38a93462069fab1e8b9af8d4ccdfc34"
+    }
+  },
+  "local_files_unchanged": true,
+  "public_instructions": "docs/宣传配乐与分发.md",
+  "validation": {
+    "json_and_markdown_links": true,
+    "existing_public_app_signature": true,
+    "code_changes_since_verified_public_build": [],
+    "local_music_video_and_credits_unchanged": true
+  }
+}

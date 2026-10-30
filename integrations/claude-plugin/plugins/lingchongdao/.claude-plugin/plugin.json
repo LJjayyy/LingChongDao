@@ -1,0 +1,9 @@
+{
+  "name": "lingchongdao",
+  "version": "1.1.1",
+  "description": "灵宠岛 · 同步 Claude Code 任务状态，并处理可完整预览的单次权限请求",
+  "author": {
+    "name": "灵宠岛"
+  },
+  "icon": "./assets/icon.png"
+}

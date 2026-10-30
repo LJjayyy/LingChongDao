@@ -1,0 +1,43 @@
+Building for debugging...
+[Planning deferred tasks]
+[2 / 10] IslandCore
+[8 / 16] IslandCore
+[12 / 20] IslandCore
+[18 / 26] IslandCore
+<USER_HOME>/Documents/Codex/2026-10-23/dia/work/AIIsland/Package.swift: IslandCore: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[24 / 29] IslandConnections
+<USER_HOME>/Documents/Codex/2026-10-23/dia/work/AIIsland/Package.swift: IslandConnections: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[29 / 32] ai-island-verify-product
+<USER_HOME>/Documents/Codex/2026-10-23/dia/work/AIIsland/Package.swift: ai-island-verify-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+<USER_HOME>/Documents/Codex/2026-10-23/dia/work/AIIsland/Package.swift: ai-island-verify-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[31 / 32] ai-island-verify-product
+Build complete! (1.72秒)
+PASS Provider, host, session and fork identities remain isolated
+PASS Question, approval, failure, completion and running priority
+PASS Stop is neutral; subagent completion cannot finish the main task
+PASS A failed tool call does not become whole-task failure
+PASS Duplicate and delayed requests cannot overwrite the current request
+PASS PreToolUse preserves pending approval; matching PostToolUse resolves it
+PASS Simple approvals require full preview; complex approvals remain deny-only
+PASS Unsupported providers and questions return to their original tool
+PASS Expiration disables actions and permits dismissing stale cards
+PASS Live requests and running tasks cannot be dismissed
+PASS Both provider hook responses use allow/deny; fallback never allows
+PASS Split newline frames decode; oversized and empty frames are rejected
+PASS Socket permissions, ping correlation, single owner and cleanup
+PASS Socket timeout falls back and notifies the model before late allow
+PASS Socket disconnect notifies the model and cannot approve
+PASS Install/remove retain unrelated configuration and are idempotent
+PASS Malformed configuration is rejected without silent replacement
+PASS Hook paths are shell-escaped and permission waiting is bounded
+PASS Inspection does not mistake unrelated hooks for this installation
+PASS Inspection detects modified hook matcher, type or timeout
+PASS Installation preserves a backup and original file mode
+PASS A changed reviewed configuration is not overwritten
+PASS Configuration symlinks are refused without touching their target
+PASS Custom parent-directory symlinks remain refused
+PASS A temporary-home Codex install never changes trust configuration
+PASS Installation requires preparation and detects helper changes
+PASS An unowned executable is not replaced
+
+27 passed; 0 failed. No live provider configuration was modified.
