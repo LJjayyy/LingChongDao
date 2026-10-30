@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="260" viewBox="0 0 1200 260" role="img" aria-labelledby="title desc">
+  <title id="title">抬眼看，展开看，回现场</title>
+  <desc id="desc">小岛先显示状态，展开后看任务，完整操作回到原来的 AI 会话。</desc>
+  <rect width="1200" height="260" rx="24" fill="#faf8f4"/>
+  <g fill="none" stroke="#a76c43" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M345 100h90m-16-14 16 14-16 14M765 100h90m-16-14 16 14-16 14"/>
+  </g>
+  <g fill="#302b27">
+    <rect x="104" y="70" width="192" height="52" rx="26"/>
+    <rect x="508" y="44" width="184" height="112" rx="20"/>
+  </g>
+  <g fill="#faf8f4">
+    <circle cx="136" cy="96" r="9"/><rect x="232" y="88" width="32" height="16" rx="8"/>
+    <rect x="530" y="64" width="90" height="7" rx="3.5"/>
+    <rect x="530" y="88" width="140" height="7" rx="3.5" opacity=".7"/>
+    <rect x="530" y="112" width="112" height="7" rx="3.5" opacity=".7"/>
+  </g>
+  <g fill="none" stroke="#302b27" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="912" y="44" width="176" height="112" rx="14"/>
+    <path d="M912 72h176M940 100h70m-70 25h110"/>
+  </g>
+  <g fill="#302b27" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="56" font-weight="600" text-anchor="middle">
+    <text x="200" y="224">抬眼看</text><text x="600" y="224">展开看</text><text x="1000" y="224">回现场</text>
+  </g>
+</svg>
