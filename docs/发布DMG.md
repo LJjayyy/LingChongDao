@@ -43,7 +43,7 @@ shasum -a 256 -c SHA256SUMS.txt
 
 当前版本为 `0.1.40`（build `41`），版本号在 `scripts/build-app.sh` 的 Info.plist 中维护。后续发布前同步更新版本和 `docs/RELEASE-NOTES.md`，再创建对应标签。
 
-本地生成 DMG 不会上传 GitHub、安装 App 或修改来源插件配置。当前 [GitHub 仓库](https://github.com/LJjayyy/LingChongDao)仅作私有预览；首次源码推送不会创建 Release，后续推送版本标签才会触发发布工作流。
+本地生成 DMG 不会上传 GitHub、安装 App 或修改来源插件配置。当前 [GitHub 仓库](https://github.com/LJjayyy/LingChongDao)保持私有，Release 与安装包也仅对有仓库访问权限的用户可见；普通源码推送不会创建 Release，推送版本标签才会触发发布工作流。
 
 ## 用户安装流程
 
@@ -51,4 +51,4 @@ shasum -a 256 -c SHA256SUMS.txt
 
 首次打开若被 macOS 拦截，请确认下载来源后，按 [Apple 官方说明](https://support.apple.com/zh-cn/102445)处理。更新前先退出旧版，再拖入新版替换。当前需手动启动与更新。
 
-GitHub runner 标签依据 [官方 runner 文档](https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job)核对；动作版本与 ClearZip 现有发布流程一致。GitHub 上的工作流尚需首个标签发布时实际验证，本机打包验证不等同于已完成线上发布。
+GitHub runner 标签依据 [官方 runner 文档](https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job)核对；动作版本与 ClearZip 现有发布流程一致。线上构建与发布的实际结果可在 [Actions](https://github.com/LJjayyy/LingChongDao/actions/workflows/release.yml)查看。

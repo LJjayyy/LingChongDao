@@ -131,7 +131,8 @@ struct CompactWindowVerification {
             try require(hover.expanded && hoverCoordinator.keyboardFocusRequests == 0,
                         "re-entry opens after the new delay without taking keyboard focus")
             hover.setHovered(active: false, hasActivity: true)
-            try await Task.sleep(for: .milliseconds(60))
+            // Keep the quick return in one actor turn. A nominal 60ms sleep
+            // can resume after the 180ms close deadline on a shared runner.
             hover.setHovered(active: true, hasActivity: true)
             try await Task.sleep(for: IslandMotion.hoverExitDelay + .milliseconds(45))
             try require(hover.expanded, "quick return cancels a pending hover close")
@@ -203,8 +204,10 @@ struct CompactWindowVerification {
                         "repeated idle coordinator updates preserve the open encounter")
 
             idle.setHovered(active: false, hasActivity: false)
-            try await Task.sleep(for: .milliseconds(60))
             idle.setHovered(active: true, hasActivity: false)
+            // Scheduling can pause after the return; the cancelled close must
+            // still leave the same encounter open without replaying it.
+            DispatchQueue.main.async { Thread.sleep(forTimeInterval: 0.25) }
             try await Task.sleep(for: IslandMotion.hoverExitDelay + .milliseconds(45))
             try require(idle.expanded && idle.idleEncounterActive && idle.idleEncounterNumber == 1,
                         "quick return cancels idle encounter closing without replay")

@@ -37,6 +37,15 @@ struct SourceAttentionVerification {
             _ = await model.handle(BridgeEnvelope(provider: source, raw: .object(raw), sourceApplication: origin))
         }
         func session(_ id: String) -> IslandSession { model.sessions.first { $0.sessionID == id }! }
+        func waitForAcknowledgement(_ ids: String...) async throws {
+            // Confirmation tasks may start late on a shared runner. Wait for
+            // the actual transition; the assertions below still fail if it never happens.
+            let clock = ContinuousClock()
+            let deadline = clock.now + .seconds(2)
+            while ids.contains(where: { session($0).unread }) && clock.now < deadline {
+                try await Task.sleep(for: .milliseconds(10))
+            }
+        }
         try check(settings.autoClearFinishedOnAppFocus, "App-level reminder sync defaults to enabled")
         await send("Stop", "desktop-stop")
         await send("TurnCompleted", "desktop-completed")
@@ -130,12 +139,12 @@ struct SourceAttentionVerification {
         try check(session("opt-out").unread, "Deactivation cancels a pending acknowledgement")
         monitor.applicationActivated(bundleIdentifier: desktop)
         monitor.applicationDeactivated(bundleIdentifier: ide)
-        try await Task.sleep(nanoseconds: 80_000_000)
+        try await waitForAcknowledgement("opt-out")
         try check(!session("opt-out").unread, "A late deactivation from the previous app does not cancel the new app visit")
         await send("Stop", "opt-out")
         monitor.applicationActivated(bundleIdentifier: desktop)
         await send("Stop", "arrived-during-visit")
-        try await Task.sleep(nanoseconds: 80_000_000)
+        try await waitForAcknowledgement("opt-out", "arrived-during-visit")
         try check(!session("opt-out").unread && !session("arrived-during-visit").unread,
                   "A sustained visit also clears completions that arrive during the visit")
         frontmost = ide
@@ -165,7 +174,7 @@ struct SourceAttentionVerification {
         try await Task.sleep(nanoseconds: 80_000_000)
         try check(session("lock-cancel").unread, "Turning sync off cancels the old visit even after it is re-enabled")
         monitor.applicationActivated(bundleIdentifier: desktop)
-        try await Task.sleep(nanoseconds: 80_000_000)
+        try await waitForAcknowledgement("lock-cancel")
         try check(!session("lock-cancel").unread, "A restarted monitor confirms a new foreground visit")
         monitor.stop()
         var opened: URL?
