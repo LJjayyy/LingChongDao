@@ -43,6 +43,7 @@ The full notice stays in this file because the DSH installer copies runtime file
  */
 
 import { spawn } from 'node:child_process'
+import { installNavigation } from './navigation.js'
 
 export const name = 'lingchongdao-hooks'
 /** No harness service is needed: the helper is spawned directly. */
@@ -52,6 +53,7 @@ export const inject = []
 const HELPER_KILL_MS = 1500
 
 export function apply(ctx, config) {
+  ctx.inject?.(['connection'], navigationCtx => installNavigation(navigationCtx, config))
   // The bundle mounts this row without config; the stable install locations are
   // derived from the home directory so a profile needs no per-install setup.
   const home = typeof process.env.HOME === 'string' ? process.env.HOME : ''

@@ -80,6 +80,9 @@ final class AppModel: ObservableObject {
         var directory: ObjCBool = false
         return FileManager.default.fileExists(atPath: url.path, isDirectory: &directory) && directory.boolValue
     }
+    var openDshSession: (String, String) async throws -> Void = { sessionID, requestID in
+        try await DshNavigationClient().open(sessionID: sessionID, requestID: requestID)
+    }
     var openWorkbench: (() -> Void)?
     var onProviderEvent: ((ProviderID, Date) -> Void)?
     private var reducer = SessionReducer()
@@ -87,6 +90,7 @@ final class AppModel: ObservableObject {
     private var previewReducer = SessionReducer()
     private var eventRevisions: [String: UInt64] = [:]
     private var navigationToken = UUID()
+    private var dshNavigationTask: Task<Void, Never>?
     private var server: IslandSocketServer?
     private var timer: Timer?
     private var cancellables = Set<AnyCancellable>()
@@ -142,6 +146,7 @@ final class AppModel: ObservableObject {
     }
 
     func stopBridge() {
+        dshNavigationTask?.cancel(); dshNavigationTask = nil
         timer?.invalidate(); timer = nil
         for waiter in waiters.values { waiter.continuation.resume(returning: .fallback("灵宠岛正在退出")) }
         waiters.removeAll(); server?.stop(); server = nil; bridgeRunning = false
@@ -173,7 +178,7 @@ final class AppModel: ObservableObject {
                 event.interactionID = resolvedID
             }
             if var approval = event.approval {
-                if (event.source == .claude || event.source == .qoder) && !approval.canApprove && !approval.canDeny {
+                if [ProviderID.claude, .qoder, .workbuddy].contains(event.source) && !approval.canApprove && !approval.canDeny {
                     // A source-side prompt outlives its short observation socket.
                     approval.expiresAt = min(approval.expiresAt ?? .distantFuture, Date().addingTimeInterval(110))
                 } else {
@@ -266,6 +271,7 @@ final class AppModel: ObservableObject {
 
     func navigationLabel(for session: IslandSession) -> String {
         if isPreview(session) { return "打开应用" }
+        if session.source == .dsh, session.host == "localhost", !session.sessionID.isEmpty { return "打开会话" }
         let bundle = session.sourceApplication?.bundleIdentifier ?? (session.source == .codex ? "com.openai.codex" : "")
         if SessionNavigation.conversationURL(for: session, applicationBundleIdentifier: bundle) != nil { return "打开会话" }
         if projectURL(for: session) != nil { return "打开项目" }
@@ -290,9 +296,17 @@ final class AppModel: ObservableObject {
     }
 
     func navigate(to session: IslandSession) {
+        let previousDshNavigation = dshNavigationTask
+        // Keep the cancelled transport until the next DSH click drains it,
+        // including when another provider was opened in between.
+        dshNavigationTask?.cancel()
         selectedSessionID = session.id
         navigationToken = UUID()
         let token = navigationToken
+        if session.source == .dsh, session.host != "localhost", !isPreview(session) {
+            actionError = "这条 DeepSeek Harness 消息来自远端，请在对应设备打开会话。"
+            openWorkbench?(); return
+        }
         let bundleID: String
         switch session.source {
         case .claude, .qoder, .codebuddy, .workbuddy:
@@ -320,6 +334,37 @@ final class AppModel: ObservableObject {
             actionError = nil
             previewReducer.markRead(sessionKey: session.id); publish()
             openApplication(application)
+            return
+        }
+        if session.source == .dsh {
+            actionError = nil
+            let revision = eventRevisions[session.id, default: 0]
+            let navigate = openDshSession
+            openApplication(application)
+            dshNavigationTask = Task { [weak self] in
+                // Drain the cancelled transport before sending the next click:
+                // otherwise detached socket writes could reach DSH out of order.
+                await previousDshNavigation?.value
+                guard !Task.isCancelled else { return }
+                do {
+                    try await navigate(session.sessionID, token.uuidString)
+                    guard !Task.isCancelled, let self, self.navigationToken == token else { return }
+                    self.dshNavigationTask = nil
+                    // The plugin confirms an exact selection and loaded history.
+                    // Its ACK must never consume a newer turn or pending interaction.
+                    if self.eventRevisions[session.id, default: 0] == revision,
+                       let current = self.reducer.sessionsByID[session.id],
+                       current.approval == nil, current.question == nil,
+                       [.idle, .completed, .failed, .interrupted].contains(current.phase) {
+                        self.reducer.markRead(sessionKey: session.id); self.publish()
+                    }
+                } catch {
+                    guard !Task.isCancelled, let self, self.navigationToken == token else { return }
+                    self.dshNavigationTask = nil
+                    self.actionError = "未能定位「\(session.displayTitle)」的 DeepSeek Harness 会话，已打开应用；提醒已保留。请确认灵宠岛插件已更新并重启 DeepSeek Harness。"
+                    self.openWorkbench?()
+                }
+            }
             return
         }
         let conversation = SessionNavigation.conversationURL(for: session, applicationBundleIdentifier: bundleID)
@@ -377,7 +422,9 @@ final class AppModel: ObservableObject {
     }
 
     private func canAcknowledge(_ session: IslandSession, in bundleIdentifier: String) -> Bool {
-        guard session.host == "localhost", session.unread,
+        // DSH has precise, acknowledged navigation. Application activation alone
+        // says nothing about which of its concurrent conversations was viewed.
+        guard session.source != .dsh, session.host == "localhost", session.unread,
               session.approval == nil, session.question == nil,
               let application = session.sourceApplication,
               application.provider == session.source,

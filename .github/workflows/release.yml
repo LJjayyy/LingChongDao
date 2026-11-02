@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: '已存在的版本标签，须与 App 版本一致，例如 v0.1.40'
+        description: '已存在的版本标签，须与 App 版本一致，例如 v0.1.41'
         required: true
         type: string
 

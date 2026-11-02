@@ -47,6 +47,7 @@ struct ApplicationVerification {
         defer { model.stopBridge() }
         try await verifySourceRouting()
         try await verifyConversationNavigation()
+        try await verifyDshNavigation()
         try await verifyBuddyApplications()
         try await verifyWorkbenchMessages()
         if CommandLine.arguments.contains("--routing-only") { return }
@@ -323,6 +324,7 @@ struct ApplicationVerification {
         model.openApplication = { opened = $0 }
         model.openDestination = { _, application, completion in opened = application; completion(true) }
         model.openWorkbench = { fallbackCount += 1 }
+        model.openDshSession = { _, _ in }
         func envelope(_ origin: String?, name: String = "UserPromptSubmit", session: String = "same", approval: Bool = false) throws -> BridgeEnvelope {
             var raw: [String: Any] = ["hook_event_name": name, "session_id": session, "prompt": "Origin routing regression"]
             if approval { raw["tool_use_id"] = "same-request"; raw["tool_name"] = "Bash"; raw["tool_input"] = ["command": "pwd"] }
@@ -407,11 +409,90 @@ struct ApplicationVerification {
         try check(dsh.sourceDisplayName == "DeepSeek Harness" && dsh.petSourceApplication == nil, "DeepSeek Harness keeps its own label and application icon source")
         opened = nil
         model.navigate(to: dsh)
-        try check(opened?.lastPathComponent == "com.deepseek.dsh.app", "DeepSeek Harness opens its own desktop app without inventing a session link")
+        try check(opened?.lastPathComponent == "com.deepseek.dsh.app", "DeepSeek Harness activates its own desktop app before exact plugin navigation")
         model.settings.showDSH = false
         try check(!model.visibleSessions.contains { $0.source == .dsh }, "Disabling DeepSeek Harness removes its tasks from the island")
         model.settings.showDSH = true
         print("Source routing verification passed. Application launches were intercepted; no source settings changed.")
+    }
+
+    @MainActor static func verifyDshNavigation() async throws {
+        let suite = "local.lingchongdao.dsh-navigation.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let model = AppModel(settings: AppSettings(defaults: defaults), defaults: defaults)
+        defer { model.stopBridge() }
+        var launches = 0
+        var workbench = 0
+        var requests: [(String, String, CheckedContinuation<Void, Error>)] = []
+        model.resolveApplicationURL = { URL(fileURLWithPath: "/Applications/" + $0 + ".app") }
+        model.openApplication = { _ in launches += 1 }
+        model.openWorkbench = { workbench += 1 }
+        model.openDshSession = { id, request in
+            try await withCheckedThrowingContinuation { requests.append((id, request, $0)) }
+        }
+        func send(_ name: String, id: String, host: String = "localhost") async -> IslandSession {
+            _ = await model.handle(BridgeEnvelope(provider: .dsh, raw: .object([
+                "hook_event_name": .string(name), "session_id": .string(id), "host": .string(host),
+                "event_id": .string(UUID().uuidString), "prompt": .string("DSH synthetic navigation"),
+            ]), sourceApplication: .dshDesktop))
+            return model.sessions.first { $0.sessionID == id }!
+        }
+        func unread(_ id: String) -> Bool { model.sessions.first { $0.sessionID == id }!.unread }
+        let a = await send("Stop", id: "dsh-A")
+        let b = await send("Stop", id: "dsh-B")
+        try check(model.navigationLabel(for: a) == "打开会话", "DSH advertises exact plugin navigation")
+        model.navigate(to: a)
+        try await waitUntil({ requests.count == 1 }, "DSH A navigation request")
+        try check(launches == 1 && requests[0].0 == a.sessionID && unread(a.sessionID) && unread(b.sessionID),
+                  "DSH app activation sends the exact session without consuming either reminder")
+        requests[0].2.resume()
+        try await waitUntil({ !unread(a.sessionID) }, "DSH A acknowledged")
+        try check(unread(b.sessionID), "An exact DSH ACK clears only its own task")
+
+        model.navigate(to: b)
+        try await waitUntil({ requests.count == 2 }, "DSH B navigation request")
+        requests[1].2.resume(throwing: SocketBridgeError.timeout)
+        try await waitUntil({ model.actionError != nil }, "DSH failure feedback")
+        try check(unread(b.sessionID) && workbench == 1, "Failed DSH navigation retains its reminder and presents fallback feedback")
+        model.navigate(to: b)
+        try await waitUntil({ requests.count == 3 }, "DSH B retry")
+        _ = await send("Stop", id: b.sessionID)
+        requests[2].2.resume()
+        try await Task.sleep(for: .milliseconds(20))
+        try check(unread(b.sessionID), "A DSH ACK for an older revision cannot consume a newer result")
+
+        let refreshedA = await send("Stop", id: a.sessionID)
+        model.navigate(to: refreshedA)
+        try await waitUntil({ requests.count == 4 }, "DSH rapid A request")
+        model.navigate(to: b)
+        requests[3].2.resume()
+        try await waitUntil({ requests.count == 5 }, "DSH rapid B request")
+        try check(requests[3].1 != requests[4].1, "Each DSH click uses a distinct correlation ID")
+        try await Task.sleep(for: .milliseconds(20))
+        try check(unread(a.sessionID) && unread(b.sessionID), "A superseded DSH ACK cannot clear either task")
+        requests[4].2.resume()
+        try await waitUntil({ !unread(b.sessionID) }, "DSH latest navigation acknowledged")
+        try check(unread(a.sessionID), "Only the latest confirmed DSH selection is acknowledged")
+
+        model.navigate(to: refreshedA)
+        try await waitUntil({ requests.count == 6 }, "DSH cross-provider A request")
+        model.navigate(to: IslandSession(source: .generic, sessionID: "other-provider", title: "Other task"))
+        model.navigate(to: b)
+        try await Task.sleep(for: .milliseconds(30))
+        try check(requests.count == 6, "An intervening provider cannot bypass the cancelled DSH transport drain")
+        requests[5].2.resume()
+        try await waitUntil({ requests.count == 7 }, "DSH cross-provider B request")
+        requests[6].2.resume()
+        try await Task.sleep(for: .milliseconds(20))
+        try check(unread(a.sessionID), "The cross-provider superseded DSH result remains unread")
+
+        let remote = await send("Stop", id: "remote-dsh", host: "remote-host")
+        let before = launches
+        model.navigate(to: remote)
+        try await Task.sleep(for: .milliseconds(20))
+        try check(requests.count == 7 && launches == before && unread(remote.sessionID) && model.actionError != nil,
+                  "Remote DSH reminders never navigate a local Desktop")
     }
 
 }

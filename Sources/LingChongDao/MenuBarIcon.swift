@@ -4,12 +4,16 @@ import AppKit
 enum MenuBarIcon {
     static func makeImage() -> NSImage {
         let bundled = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png")
+        #if DEBUG
         let local = Bundle.main.bundleURL.pathExtension == "app" ? nil
             : URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
                 .appendingPathComponent("assets/app-icon/MenuBarIcon.png")
+        #else
+        let local: URL? = nil
+        #endif
         let image = (bundled ?? local).flatMap { NSImage(contentsOf: $0) }
             ?? NSImage(systemSymbolName: "pawprint.fill", accessibilityDescription: "灵宠岛")
             ?? NSImage(size: NSSize(width: 22, height: 22))

@@ -152,7 +152,8 @@ final class ConnectionTests: XCTestCase {
     func testBuddyDefinitionsUseMinimalObservationOnlySchema() throws {
         for provider in [ProviderID.codebuddy, .workbuddy] {
             let defs = try definitions(provider)
-            XCTAssertEqual(defs.map(\.event), ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop", "SessionEnd"])
+            let events = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop", "SessionEnd"]
+            XCTAssertEqual(defs.map(\.event), provider == .workbuddy ? events + ["Notification"] : events)
             XCTAssertTrue(defs.allSatisfy { $0.timeout == 3 && $0.command.contains("--timeout 2") && $0.statusMessage == nil })
             XCTAssertTrue(defs.allSatisfy { $0.command.contains("--provider \(provider.rawValue)") })
             XCTAssertFalse(HookConnectionService.capabilities(provider).contains(.limitedApproval))
@@ -466,6 +467,8 @@ final class ConnectionTests: XCTestCase {
 
         XCTAssertTrue(DshBridge.pluginFiles.contains("cordis.patch.yml"), "The bundle patch is part of the package")
         XCTAssertTrue(DshBridge.pluginFiles.contains("icon.png"), "The harness paints the package icon in its plugin list")
+        XCTAssertTrue(DshBridge.pluginFiles.contains("navigation.js"), "The local navigation bridge ships with the plugin")
+        XCTAssertTrue(DshBridge.pluginFiles.contains("client.js"), "The client navigation entry ships with the plugin")
         let preview = DshBridge.preview()
         XCTAssertTrue(preview.contains("dsh.bundle.patch"))
         XCTAssertTrue(preview.contains("'lingchongdao-dsh-hooks'"))
@@ -530,6 +533,13 @@ final class ConnectionTests: XCTestCase {
         try Data("- insert: []\n".utf8).write(to: resolved.appendingPathComponent("cordis.patch.yml"))
         XCTAssertFalse(DshBridge.pluginInstalled(environment), "The package icon is part of the runtime file set")
         try Data([0x89, 0x50, 0x4E, 0x47]).write(to: resolved.appendingPathComponent("icon.png"))
+        for name in ["navigation.js", "locale/en.json", "locale/zh.json"] {
+            let file = resolved.appendingPathComponent(name)
+            try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data("{}\n".utf8).write(to: file)
+        }
+        XCTAssertFalse(DshBridge.pluginInstalled(environment), "An old observer without the client navigation entry needs repair")
+        try Data("export function apply() {}\n".utf8).write(to: resolved.appendingPathComponent("client.js"))
         XCTAssertTrue(DshBridge.pluginInstalled(environment))
     }
 

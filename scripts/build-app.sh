@@ -20,8 +20,18 @@ for relative in assets/app-icon/AppIcon.icns assets/app-icon/MenuBarIcon.png \
   [[ -s "$project_dir/$relative" ]] || { echo "缺少品牌素材：$relative" >&2; exit 1; }
 done
 cd "$project_dir"
-swift build -c "$configuration"
-binary_dir="$(swift build -c "$configuration" --show-bin-path)"
+build_options=(-c "$configuration")
+if [[ "$configuration" == "release" ]]; then
+  # Map both source literals and debug records before compilation. The copied
+  # binaries are stripped below as a second layer, before hashing/signing them.
+  for flag in -file-prefix-map -debug-prefix-map; do
+    build_options+=(-Xswiftc "$flag" -Xswiftc "$project_dir=/src/LingChongDao")
+    build_options+=(-Xswiftc "$flag" -Xswiftc "$HOME=/build-user")
+  done
+  build_options+=(-Xswiftc -file-compilation-dir -Xswiftc /src/LingChongDao)
+fi
+swift build "${build_options[@]}"
+binary_dir="$(swift build "${build_options[@]}" --show-bin-path)"
 app_dir="$project_dir/dist/build.noindex/灵宠岛.app"
 # Always regenerate this managed resource tree so removed resources cannot linger.
 rm -rf "$app_dir/Contents/Resources"
@@ -38,6 +48,10 @@ for name in boss-mouse.png boss-mouse-actions.png boss-mouse-performance.png bos
 done
 cp "$binary_dir/LingChongDao" "$app_dir/Contents/MacOS/LingChongDao"
 cp "$binary_dir/lingchongdao-hook" "$app_dir/Contents/MacOS/lingchongdao-hook"
+if [[ "$configuration" == "release" ]]; then
+  /usr/bin/strip -S "$app_dir/Contents/MacOS/LingChongDao" "$app_dir/Contents/MacOS/lingchongdao-hook"
+  /usr/bin/codesign --force --sign - "$app_dir/Contents/MacOS/lingchongdao-hook"
+fi
 cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -45,8 +59,8 @@ cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <key>CFBundleName</key><string>灵宠岛</string>
 <key>CFBundleDisplayName</key><string>灵宠岛</string>
 <key>CFBundleIdentifier</key><string>local.lingchongdao.app</string>
-<key>CFBundleVersion</key><string>41</string>
-<key>CFBundleShortVersionString</key><string>0.1.40</string>
+<key>CFBundleVersion</key><string>42</string>
+<key>CFBundleShortVersionString</key><string>0.1.41</string>
 <key>CFBundleIconFile</key><string>AppIcon.icns</string>
 <key>CFBundleExecutable</key><string>LingChongDao</string>
 <key>CFBundlePackageType</key><string>APPL</string>
@@ -57,6 +71,7 @@ cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <key>NSPrincipalClass</key><string>NSApplication</string>
 </dict></plist>
 PLIST
+/usr/libexec/PlistBuddy -c "Add :LingChongDaoBuildConfiguration string $configuration" "$app_dir/Contents/Info.plist"
 "$project_dir/scripts/build-codex-plugin.sh"
 cp "$project_dir/dist/codex-plugin/LingChongDaoCodexPlugin.zip" "$app_dir/Contents/Resources/LingChongDaoCodexPlugin.zip"
 /usr/bin/ditto --norsrc --noextattr "$project_dir/dist/codex-plugin/LingChongDaoCodexPlugin" "$app_dir/Contents/Resources/LingChongDaoCodexPlugin"
@@ -74,4 +89,7 @@ stage_plugin zcode-plugin ZcodePlugin
 stage_plugin qoder-plugin QoderPlugin
 stage_plugin claude-plugin ClaudePlugin
 codesign --force --deep --sign - "$app_dir"
+if [[ "$configuration" == "release" ]]; then
+  python3 "$project_dir/scripts/verify-release-security.py" "$app_dir"
+fi
 echo "$app_dir"

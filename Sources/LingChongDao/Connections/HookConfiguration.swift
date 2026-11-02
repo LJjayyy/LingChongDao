@@ -79,8 +79,10 @@ public enum HookConfigurationEditor {
         let observationOnly = provider == .codebuddy || provider == .workbuddy
         let events: [String]
         switch provider {
-        case .codebuddy, .workbuddy:
+        case .codebuddy:
             events = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop", "SessionEnd"]
+        case .workbuddy:
+            events = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop", "SessionEnd", "Notification"]
         case .zcode:
             // ZCode accepts exactly these seven events. SessionEnd, subagent and
             // notification hooks are not part of its contract.

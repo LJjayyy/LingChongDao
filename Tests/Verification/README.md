@@ -6,4 +6,8 @@ The checks cover the same behavior as the XCTest suites plus request replay, run
 
 The XCTest suites remain available with a full Xcode toolchain. The standalone runner does not require `@testable` imports and can be built in release configuration.
 
+`scripts/verify-dsh-navigation.sh` exercises the production DSH Unix socket client with private temporary listeners, including correlation, malformed replies, timeout and cancellation. `scripts/verify-dsh-plugin.mjs` checks the plugin socket and browser navigation bridge. Browser mocks in that suite verify edge cases; they do not replace the separate official-runtime GUI test recorded in the DSH integration notes.
+
+`scripts/verify-workbuddy.sh` checks WorkBuddy normalization and lifecycle boundaries with an independent temporary build. `scripts/verify-workbuddy-application.sh` checks the real app model with isolated preferences, including unread results, expired observations and navigation. Both use synthetic events; they do not replace a real WorkBuddy client conversation test.
+
 The application and expired-request scripts compile `Tests/VerificationSupport/CodexReviewFixture.swift` alongside their checks. It writes only synthetic session/turn reviewer records to private temporary JSONL files and removes them after the run. These fixtures exercise Codex's normal reviewer check without reading real transcripts or weakening production approval rules. Qoder checks remain observation-only and resolve their notices through source progress.

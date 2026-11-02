@@ -281,7 +281,7 @@ struct IslandView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("\(model.navigationLabel(for: session))：\(session.displayTitle)，\(identityStatus(session))")
-                .accessibilityValue(session.question?.prompt ?? session.approval?.summary ?? (session.detail.isEmpty ? session.displayTitle : session.detail))
+                .accessibilityValue(messageDetail(session))
                 .help(model.navigationHelp(for: session))
                 if let question = session.question { questionCard(question, session: session) }
                 else if let approval = session.approval { approvalCard(approval, session: session) }
@@ -341,6 +341,7 @@ struct IslandView: View {
     }
 
     private func sessionStateTitle(_ session: IslandSession) -> String {
+        if session.needsStatusVerification { return "状态待核实" }
         if session.approval?.isExpired() == true || session.question?.isExpired() == true { return "已过期" }
         if session.hasPendingQuestion { return "待回答" }
         if session.hasPendingApproval { return session.approval?.canApprove == true ? "待批准" : "待确认" }
@@ -370,7 +371,7 @@ struct IslandView: View {
                     Text(session.displayTitle).fontWeight(.semibold).lineLimit(1).truncationMode(.tail).layoutPriority(1)
                     expandedStateBadge(session)
                 }
-                Text(session.question?.prompt ?? session.approval?.summary ?? (session.detail.isEmpty ? session.displayTitle : session.detail))
+                Text(messageDetail(session))
                     .foregroundStyle(IslandStyle.body).lineLimit(4).fixedSize(horizontal: false, vertical: true)
             }.frame(maxWidth: .infinity, alignment: .leading)
             if session.question == nil && session.approval == nil {
@@ -380,7 +381,9 @@ struct IslandView: View {
     }
 
     @ViewBuilder private func questionCard(_ question: QuestionRequest, session: IslandSession) -> some View {
-        if question.canAnswer || (pinned != nil && expired) {
+        if session.needsStatusVerification {
+            Text(question.prompt).foregroundStyle(IslandStyle.body).lineLimit(4)
+        } else if question.canAnswer || (pinned != nil && expired) {
             VStack(spacing: 6) {
                 ForEach(Array(question.options.prefix(12).enumerated()), id: \.offset) { index, option in
                     Button { submitAnswer(option, session: session) } label: {
@@ -417,9 +420,13 @@ struct IslandView: View {
         } else {
             Text("请在完整会话中回答这个问题。").foregroundStyle(IslandStyle.body)
         }
-        if expired { expiredNotice }
+        if expired && !session.needsStatusVerification { expiredNotice }
         footer {
-            Button("稍后") { context.collapse() }.buttonStyle(IslandActionStyle())
+            if session.needsStatusVerification {
+                Button("关闭提示") { model.dismiss(session); context.collapse() }.buttonStyle(IslandActionStyle())
+            } else {
+                Button("稍后") { context.collapse() }.buttonStyle(IslandActionStyle())
+            }
             Spacer()
             Button(model.navigationLabel(for: session)) { model.navigate(to: session); context.collapse() }.buttonStyle(IslandActionStyle())
         }
@@ -438,20 +445,30 @@ struct IslandView: View {
         } else if !expired {
             Text("请打开完整会话，核对这次操作的详细信息。").foregroundStyle(IslandStyle.body)
         }
-        if expired { expiredNotice }
+        if expired && !session.needsStatusVerification { expiredNotice }
         else if (request.canApprove || request.canDeny), let deadline = request.expiresAt {
             Text("\(max(0, Int(deadline.timeIntervalSinceNow))) 秒后返回原工具处理").foregroundStyle(IslandStyle.orange).font(.system(size: 11))
         }
         footer {
-            Spacer()
-            if request.canDeny || expired {
-                Button("拒绝") { model.respond(to: session, decision: .deny) }.buttonStyle(IslandActionStyle()).disabled(expired)
-            }
-            if request.canApprove {
-                Button([ProviderID.claude, .codex, .qoder].contains(session.source) ? "批准一次" : "批准") { model.respond(to: session, decision: .allow) }.buttonStyle(IslandActionStyle(primary: true)).disabled(expired)
-            }
-            if expired || ([ProviderID.claude, .codex, .qoder].contains(session.source) && !request.canApprove && !request.canDeny) {
-                Button("关闭提示") { model.dismiss(session); context.collapse() }.buttonStyle(IslandActionStyle())
+            if session.source == .workbuddy && !request.canApprove && !request.canDeny {
+                if session.needsStatusVerification {
+                    Button("关闭提示") { model.dismiss(session); context.collapse() }.buttonStyle(IslandActionStyle())
+                } else {
+                    Button("稍后") { context.collapse() }.buttonStyle(IslandActionStyle())
+                }
+                Spacer()
+                Button(model.navigationLabel(for: session)) { model.navigate(to: session); context.collapse() }.buttonStyle(IslandActionStyle())
+            } else {
+                Spacer()
+                if request.canDeny || expired {
+                    Button("拒绝") { model.respond(to: session, decision: .deny) }.buttonStyle(IslandActionStyle()).disabled(expired)
+                }
+                if request.canApprove {
+                    Button([ProviderID.claude, .codex, .qoder].contains(session.source) ? "批准一次" : "批准") { model.respond(to: session, decision: .allow) }.buttonStyle(IslandActionStyle(primary: true)).disabled(expired)
+                }
+                if expired || ([ProviderID.claude, .codex, .qoder].contains(session.source) && !request.canApprove && !request.canDeny) {
+                    Button("关闭提示") { model.dismiss(session); context.collapse() }.buttonStyle(IslandActionStyle())
+                }
             }
         }
     }
@@ -490,18 +507,25 @@ struct IslandView: View {
         switch kind {
         case .question: return IslandStyle.cyan
         case .approval: return IslandStyle.orange
+        case .sourceInput: return IslandStyle.orange
+        case .unverified: return IslandStyle.orange
         case .attention: return IslandStyle.red
         case .running: return IslandStyle.green
         case .result: return IslandStyle.blue
         }
     }
     private func identityStatus(_ session: IslandSession) -> String {
+        if session.needsStatusVerification { return "状态待核实" }
         if session.question != nil { return expired ? "岛内处理已结束" : "正在询问" }
         if let approval = session.approval {
             if expired { return "岛内处理已结束" }
             return approval.canApprove || approval.canDeny ? "需要你的批准" : "请在来源确认"
         }
         switch session.phase { case .completed: return "本轮已完成"; case .failed: return "本轮执行失败"; case .interrupted: return "本轮已中断"; case .running: return "正在工作"; default: return "本轮已结束" }
+    }
+    private func messageDetail(_ session: IslandSession) -> String {
+        if session.needsStatusVerification { return session.detail }
+        return session.question?.prompt ?? session.approval?.summary ?? (session.detail.isEmpty ? session.displayTitle : session.detail)
     }
     private func updateSize() {
         context.setCompactContentSize(leadingWidth: compactPetWidth, trailingWidth: compactTrailingWidth)

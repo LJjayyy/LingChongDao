@@ -543,6 +543,19 @@ private enum Verification {
             try requireThrows { _ = try definitions(.generic) }
         }
 
+        await check("WorkBuddy observes native waiting notifications without adding approval hooks") {
+            let work = try definitions(.workbuddy)
+            let code = try definitions(.codebuddy)
+            try require(work.count == 7 && code.count == 6)
+            try require(work.contains { $0.event == "Notification" && $0.timeout == 3 && $0.command.contains("--timeout 2") })
+            try require(!work.contains { $0.event == "PermissionRequest" })
+            try require(work.allSatisfy { $0.statusMessage == nil })
+            let installed = try HookConfigurationEditor.install(provider: .workbuddy, existing: existingConfiguration, definitions: work, recognizedCommands: [])
+            try require(try HookConfigurationEditor.inspect(provider: .workbuddy, existing: installed, definitions: work, recognizedCommands: []).isComplete)
+            let removed = try unwrap(HookConfigurationEditor.remove(provider: .workbuddy, existing: installed, recognizedCommands: Set(work.map(\.command))))
+            try require(try JSONSerialization.jsonObject(with: removed) as? NSDictionary == JSONSerialization.jsonObject(with: existingConfiguration) as? NSDictionary)
+        }
+
         await check("Inspection does not mistake unrelated hooks for this installation") {
             let status = try HookConfigurationEditor.inspect(provider: .qoder, existing: existingConfiguration, definitions: definitions(), recognizedCommands: [])
             try require(!status.isComplete && status.ownedHookCount == 0)

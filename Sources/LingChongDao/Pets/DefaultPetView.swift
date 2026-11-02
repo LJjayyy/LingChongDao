@@ -284,6 +284,7 @@ struct DefaultPetView: View {
         if let bundledURL = Bundle.main.url(forResource: name, withExtension: fileExtension, subdirectory: "DefaultPet") {
             return bundledURL
         }
+        #if DEBUG
         // A packaged app must use its own resources, independent of the checkout.
         // Direct `swift run` can load the repository's artwork directory.
         guard Bundle.main.bundleURL.pathExtension != "app" else { return nil }
@@ -293,5 +294,8 @@ struct DefaultPetView: View {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appendingPathComponent("assets/default-pet/\(name).\(fileExtension)")
+        #else
+        return nil
+        #endif
     }
 }

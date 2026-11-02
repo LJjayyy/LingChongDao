@@ -80,7 +80,16 @@ public enum HookNormalizer {
             let prompt = text("question", "prompt", "message") ?? "请在原工具中回答此问题。"
             // Lifecycle hooks do not establish a generic question response contract.
             question = QuestionRequest(id: identity, prompt: prompt, canAnswer: false, expiresAt: parseDate(raw["expires_at"]))
-        case "Stop": kind = .turnStopped; detail = "本轮响应已停止，完成结果待原工具确认。"
+        case "Stop":
+            kind = .turnStopped
+            detail = "本轮响应已停止，完成结果待原工具确认。"
+            if provider == .workbuddy,
+               let reply = text("last_assistant_message")?.trimmingCharacters(in: .whitespacesAndNewlines), !reply.isEmpty {
+                // This is the source's reply, not proof that the user's task succeeded.
+                detail = containsSensitiveText(reply)
+                    ? "本轮回复包含敏感字段，请回 WorkBuddy 查看。"
+                    : String(reply.prefix(600)) + (reply.count > 600 ? "…" : "")
+            }
         case "Interrupt", "TurnInterrupted", "turn/interrupted": kind = .interrupted
         case "SessionEnd": kind = .sessionEnded; detail = "会话连接已结束。"
         case "TurnCompleted", "turn/completed", "turn.completed", "agent-turn-complete":
@@ -122,6 +131,19 @@ public enum HookNormalizer {
         if provider == .qoder, name == "StopFailure" {
             kind = .failed
             detail = "Qoder 本轮响应出错，请回来源查看。"
+        }
+        if provider == .workbuddy, name == "Notification" {
+            if text("notification_type") == "permission_prompt" {
+                kind = .permissionPrompted
+                let message = text("message")?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let suffix = "needs your permission to use AskUserQuestion"
+                let identifiesQuestionTool = !message.contains("\n") && !message.contains("\r") &&
+                    (message == suffix || message.hasSuffix(" " + suffix))
+                approval = ApprovalRequest(id: "workbuddy-notice-" + sessionID, toolName: identifiesQuestionTool ? "AskUserQuestion" : "",
+                    summary: "WorkBuddy 正在等待确认或回答，请回会话处理。", createdAt: time,
+                    expiresAt: time.addingTimeInterval(110))
+                detail = approval!.summary
+            } else { kind = .permissionObserved }
         }
         if provider == .claude {
             if name == "PermissionRequest" {
@@ -175,14 +197,54 @@ public enum HookNormalizer {
                     question = nil
                 }
             }
+            if provider == .workbuddy, kind == .questionRequested,
+               questionTools.contains(tool) || questionTools.contains(name),
+               var pending = question, let content = workbuddyQuestionContent(input) {
+                pending.prompt = content.prompt
+                pending.options = content.options
+                pending.canAnswer = false
+                question = pending
+                detail = content.prompt
+            }
         }
         let sessionTitle = SessionTitle.normalize(text("session_title"))
-            ?? SessionTitle.normalize(text("title"))
+            ?? (provider == .workbuddy && name == "Notification" ? nil : SessionTitle.normalize(text("title")))
         let promptTitle = name == "UserPromptSubmit" ? text("prompt").flatMap({ PromptTitlePolicy.policy(for: provider).title(from: $0) }) : nil
         let eventTitle = sessionTitle ?? promptTitle
-        var event = NormalizedHookEvent(eventID: eventID, source: provider, host: text("host", "host_id") ?? "localhost", sessionID: sessionID, threadID: threadID, turnID: text("turn_id", "turnId", "turnID") ?? raw["turn"]?["id"]?.stringValue, interactionID: kind == .activity && !["PostToolUse", "PostToolUseFailure"].contains(name) ? nil : stableInteraction, timestamp: time, kind: kind, title: eventTitle, agentName: text("agent_name", "agentName"), cwd: normalizedCWD, detail: String(detail.prefix(2000)), approval: approval, question: question, isSubagent: isSubagent, sourceApplication: sourceApplication)
+        let carriesToolActivityID = ["PostToolUse", "PostToolUseFailure"].contains(name) || (provider == .workbuddy && name == "PreToolUse")
+        // Native WorkBuddy emits one generation_id per conversation round.
+        // Keep explicit turn identifiers authoritative for all providers.
+        let turnID = text("turn_id", "turnId", "turnID") ?? raw["turn"]?["id"]?.stringValue
+            ?? (provider == .workbuddy ? text("generation_id") : nil)
+        var event = NormalizedHookEvent(eventID: eventID, source: provider, host: text("host", "host_id") ?? "localhost", sessionID: sessionID, threadID: threadID, turnID: turnID, interactionID: kind == .activity && !carriesToolActivityID ? nil : stableInteraction, timestamp: time, kind: kind, title: eventTitle, agentName: text("agent_name", "agentName"), cwd: normalizedCWD, detail: String(detail.prefix(2000)), approval: approval, question: question, isSubagent: isSubagent, sourceApplication: sourceApplication)
         event.answeredQuestionItemIDs = answeredQuestionItemIDs
+        if provider == .workbuddy, !tool.isEmpty { event.toolName = tool }
         return event
+    }
+
+    /// Reads the installed WorkBuddy tool schema only after a correlated question
+    /// event exists. This cannot supply an event the source did not dispatch.
+    private static func workbuddyQuestionContent(_ input: [String: JSONValue]) -> (prompt: String, options: [String])? {
+        guard let items = input["questions"]?.arrayValue, !items.isEmpty, items.count <= 4 else { return nil }
+        func text(_ value: JSONValue?) -> String? {
+            guard let raw = value?.stringValue else { return nil }
+            let clean = raw.components(separatedBy: .controlCharacters).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+            return clean.isEmpty ? nil : clean
+        }
+        func preview(_ value: String, limit: Int) -> String {
+            value.count > limit ? String(value.prefix(limit - 1)) + "…" : value
+        }
+        let prompts = items.compactMap { text($0["question"]) }
+        guard prompts.count == items.count else { return nil }
+        let prompt = preview(prompts.joined(separator: "\n\n"), limit: 2000)
+        var options: [String] = []
+        if items.count == 1, let rawOptions = items[0]["options"]?.arrayValue, rawOptions.count <= 4 {
+            let labels = rawOptions.compactMap { text($0["label"]) }
+            if labels.count == rawOptions.count, Set(labels).count == labels.count {
+                options = labels.map { preview($0, limit: 200) }
+            }
+        }
+        return (prompt, options)
     }
 
     /// Limit inline approval to a completely visible, simple Bash request. Other valid requests can still be denied.

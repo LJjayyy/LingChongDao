@@ -55,7 +55,7 @@ https://github.com/user-attachments/assets/04e7e4d5-7650-44f9-9cf1-bf679a2e9e2e
 
 **所有事情都能在岛上处理吗？** 问题通常回原工具回答；部分简单确认可以在岛上处理，以实际按钮为准。
 
-[使用说明](docs/使用说明.md) · [隐私说明](PRIVACY.md) · [卸载与数据清理](docs/卸载与数据清理.md)
+[使用说明](docs/使用说明.md) · [Agent 能力兼容](docs/Agent能力兼容性.md) · [隐私说明](PRIVACY.md) · [卸载与数据清理](docs/卸载与数据清理.md)
 
 </details>
 

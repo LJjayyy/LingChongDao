@@ -48,7 +48,7 @@ public actor DshConnectionService {
                 connection.pluginUpdateAvailable = true
                 connection.message = "组合包有新版本，点「更新插件」刷新；更新后请完全退出并重启 DeepSeek Harness。"
             } else {
-                connection.message = "已作为 dsh 组合包安装，可在 DeepSeek Harness 的「插件 → 已安装插件」里看到并开关；请完全退出并重启 DeepSeek Harness，再开启新会话验证。插件只上报活动，权限请求仍在来源处理。"
+                connection.message = "已作为 dsh 组合包安装，可在 DeepSeek Harness 的「插件 → 已安装插件」里看到并开关；请完全退出并重启 DeepSeek Harness。插件同步任务活动，并在点击提醒时定位对应会话；权限请求仍在来源处理。"
             }
         } else if hasPlugin && hasHelper && !hasBundle && !hasLegacyRow {
             connection.status = .notInstalled

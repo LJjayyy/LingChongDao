@@ -111,10 +111,19 @@ public struct IslandSession: Identifiable, Codable, Equatable, Sendable {
     public var displayTitle: String { SessionTitle.displayTitle(title: title, cwd: cwd, question: question?.prompt) }
     public var hasPendingApproval: Bool { phase == .waitingApproval && approval.map { !$0.isExpired() } == true }
     public var hasPendingQuestion: Bool { phase == .waitingQuestion && question.map { !$0.isExpired() } == true }
+    /// A local observation timeout is not evidence that WorkBuddy received an answer.
+    public var needsStatusVerification: Bool {
+        guard source == .workbuddy else { return false }
+        if phase == .waitingQuestion { return question?.isExpired() == true }
+        return phase == .waitingApproval && approval.map {
+            $0.id.hasPrefix("workbuddy-notice-") && !$0.canApprove && !$0.canDeny && $0.isExpired()
+        } == true
+    }
     public var isAwaitingInteraction: Bool { hasPendingApproval || hasPendingQuestion }
-    public var isVisibleOnIsland: Bool { phase == .running || isAwaitingInteraction || (unread && approval == nil && question == nil) }
+    public var isVisibleOnIsland: Bool { phase == .running || isAwaitingInteraction || needsStatusVerification || (unread && approval == nil && question == nil) }
     public var priority: Int {
         if hasPendingQuestion { return 0 }; if hasPendingApproval { return 1 }
+        if needsStatusVerification { return 2 }
         switch phase { case .failed, .interrupted: return 2; case .completed: return 3; case .running: return 4; default: return 5 }
     }
     public init(source: ProviderID, host: String = "localhost", sessionID: String, threadID: String? = nil, turnID: String? = nil, title: String, agentName: String? = nil, cwd: String = "", detail: String = "", phase: SessionPhase = .idle, updatedAt: Date = Date(), unread: Bool = false, approval: ApprovalRequest? = nil, question: QuestionRequest? = nil, sourceApplication: SourceApplicationID? = nil) {
@@ -156,6 +165,8 @@ public struct NormalizedHookEvent: Codable, Equatable, Sendable {
     public var threadID: String?
     public var turnID: String?
     public var interactionID: String?
+    /// Actual source tool name, when supplied; notification bindings stay in approval.
+    public var toolName: String?
     public var timestamp: Date
     public var kind: HookEventKind
     public var title: String?
@@ -167,8 +178,9 @@ public struct NormalizedHookEvent: Codable, Equatable, Sendable {
     public var answeredQuestionItemIDs: [String]?
     public var isSubagent: Bool
     public var sessionKey: String { SessionIdentity.key(source: source, host: host, sessionID: sessionID, threadID: threadID, sourceApplication: sourceApplication) }
-    public init(eventID: String = UUID().uuidString, source: ProviderID, host: String = "localhost", sessionID: String, threadID: String? = nil, turnID: String? = nil, interactionID: String? = nil, timestamp: Date = Date(), kind: HookEventKind, title: String? = nil, agentName: String? = nil, cwd: String? = nil, detail: String? = nil, approval: ApprovalRequest? = nil, question: QuestionRequest? = nil, isSubagent: Bool = false, sourceApplication: SourceApplicationID? = nil) {
+    public init(eventID: String = UUID().uuidString, source: ProviderID, host: String = "localhost", sessionID: String, threadID: String? = nil, turnID: String? = nil, interactionID: String? = nil, timestamp: Date = Date(), kind: HookEventKind, title: String? = nil, agentName: String? = nil, cwd: String? = nil, detail: String? = nil, approval: ApprovalRequest? = nil, question: QuestionRequest? = nil, isSubagent: Bool = false, sourceApplication: SourceApplicationID? = nil, toolName: String? = nil) {
         self.sourceApplication = sourceApplication?.provider == source ? sourceApplication : nil
+        self.toolName = toolName
         self.eventID = eventID; self.source = source; self.host = host; self.sessionID = sessionID; self.threadID = threadID; self.turnID = turnID; self.interactionID = interactionID; self.timestamp = timestamp; self.kind = kind; self.title = title; self.agentName = agentName; self.cwd = cwd; self.detail = detail; self.approval = approval; self.question = question; self.isSubagent = isSubagent
     }
 }

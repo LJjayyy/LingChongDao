@@ -4,12 +4,20 @@ public struct SessionReducer: Sendable {
     public private(set) var sessionsByID: [String: IslandSession] = [:]
     private var hookApprovals: [String: [ApprovalRequest]] = [:]
     private var codexQuestions: [String: [QuestionRequest]] = [:]
+    /// SessionEnd closes the transport, not a previously observed WorkBuddy result.
+    private var workbuddyTurnResults: Set<String> = []
     private var seenEvents: Set<String> = []
     private var eventOrder: [String] = []
     public init() {}
     public var sessions: [IslandSession] {
         sessionsByID.values.filter { $0.isVisibleOnIsland }
             .sorted { $0.priority == $1.priority ? ($0.updatedAt == $1.updatedAt ? $0.id < $1.id : $0.updatedAt > $1.updatedAt) : $0.priority < $1.priority }
+    }
+
+    private func isWorkBuddyNotice(_ session: IslandSession) -> Bool {
+        session.source == .workbuddy && session.approval.map {
+            $0.id.hasPrefix("workbuddy-notice-") && !$0.canApprove && !$0.canDeny
+        } == true
     }
 
     private mutating func applyCodexQuestions(_ event: NormalizedHookEvent, session: inout IslandSession) -> Bool? {
@@ -152,6 +160,19 @@ public struct SessionReducer: Sendable {
         // A delayed event from an earlier known turn cannot resolve a new turn/request.
         if let currentTurn = session.turnID, let turn = event.turnID, currentTurn != turn, event.kind != .started,
            !(event.source == .codex && event.answeredQuestionItemIDs != nil) { return false }
+        // Once WorkBuddy's main turn ended, delayed child output cannot replace
+        // its reply or metadata. A new main prompt clears this result below.
+        if event.source == .workbuddy, event.isSubagent, workbuddyTurnResults.contains(session.id) { return false }
+        if event.source == .workbuddy, event.kind == .permissionPrompted {
+            guard !workbuddyTurnResults.contains(session.id),
+                  [.running, .waitingApproval, .waitingQuestion].contains(session.phase),
+                  session.question == nil, session.approval == nil || isWorkBuddyNotice(session) else { return false }
+        }
+        if event.source == .workbuddy, event.kind == .permissionObserved, workbuddyTurnResults.contains(session.id) { return false }
+        let hasWorkBuddyNotice = isWorkBuddyNotice(session)
+        let closesWorkBuddyNotice = hasWorkBuddyNotice && !event.isSubagent && event.interactionID != nil &&
+            session.approval?.toolName == "AskUserQuestion" && event.toolName == "AskUserQuestion" &&
+            [.activity, .questionRequested, .questionResolved].contains(event.kind)
         if !event.isSubagent, let title = SessionTitle.normalize(event.title) {
             session.title = title
         }
@@ -159,7 +180,11 @@ public struct SessionReducer: Sendable {
         if let cwd = event.cwd, !cwd.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             if !event.isSubagent || session.cwd.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { session.cwd = cwd }
         }
-        if let detail = event.detail, event.kind != .sessionResumed { session.detail = detail }
+        let preservesWorkBuddyResult = event.source == .workbuddy && event.kind == .sessionEnded && workbuddyTurnResults.contains(session.id)
+        let preservesWorkBuddyQuestion = event.source == .workbuddy && event.kind == .activity && session.phase == .waitingQuestion && session.needsStatusVerification
+        let preservesWorkBuddyNotice = hasWorkBuddyNotice && !closesWorkBuddyNotice &&
+            (event.isSubagent || [.permissionObserved, .activity, .questionRequested, .questionResolved].contains(event.kind))
+        if let detail = event.detail, event.kind != .sessionResumed, !preservesWorkBuddyResult, !preservesWorkBuddyQuestion, !preservesWorkBuddyNotice { session.detail = detail }
         // Codex keeps its existing session key when moving between desktop and CLI. Each
         // accepted main-session event must refresh its verified app ownership;
         // missing evidence clears ownership instead of inheriting a desktop app.
@@ -173,21 +198,38 @@ public struct SessionReducer: Sendable {
             // Child updates can enrich activity, but do not resolve or terminate the main session.
             sessionsByID[session.id] = session; return true
         }
+        if hasWorkBuddyNotice, [.activity, .questionRequested, .questionResolved].contains(event.kind) {
+            if closesWorkBuddyNotice {
+                // The source's fixed notification names this native tool. Its
+                // later execution/result closes that coarse wait, not a new ask.
+                session.approval = nil; session.question = nil; session.phase = .running; session.unread = false
+            }
+            // An unrelated tool has no request identity linking it to the notice.
+            sessionsByID[session.id] = session; return true
+        }
         if let accepted = applyCodexQuestions(event, session: &session) {
             guard accepted else { return false }
             restoreCodexQuestion(&session)
             sessionsByID[session.id] = session; return true
         }
         switch event.kind {
-        case .started: session.phase = .running; session.unread = false; session.approval = nil; session.question = nil
+        case .started:
+            workbuddyTurnResults.remove(session.id)
+            session.phase = .running; session.unread = false; session.approval = nil; session.question = nil
         case .activity:
             if let interaction = event.interactionID, interaction == session.approval?.id { session.approval = nil }
             // Retained expired requests are history, not a barrier to new activity.
             // A live request still requires its exact interaction ID to resolve.
-            if !session.hasPendingApproval { session.approval = nil }
-            if !session.hasPendingQuestion { session.question = nil }
-            if !session.isAwaitingInteraction { session.phase = .running }
-        case .permissionPrompted: break
+            if !session.hasPendingApproval && !isWorkBuddyNotice(session) { session.approval = nil }
+            if !session.hasPendingQuestion && !session.needsStatusVerification { session.question = nil }
+            if !session.isAwaitingInteraction && !session.needsStatusVerification {
+                workbuddyTurnResults.remove(session.id)
+                session.phase = .running
+            }
+        case .permissionPrompted:
+            if event.source == .workbuddy, let request = event.approval {
+                session.approval = request; session.question = nil; session.phase = .waitingApproval; session.unread = true
+            }
         case .permissionObserved:
             // Permission telemetry cannot create attention, resolve a real
             // interaction, or resurrect work that already reached a terminal state.
@@ -209,11 +251,22 @@ public struct SessionReducer: Sendable {
         case .questionResolved:
             guard let interaction = event.interactionID, interaction == session.question?.id else { return false }
             session.question = nil; session.phase = .running
-        case .turnStopped: session.approval = nil; session.question = nil; session.phase = .idle; session.unread = true
-        case .sessionEnded: session.approval = nil; session.question = nil; session.phase = .idle; session.unread = false
-        case .completed: session.approval = nil; session.question = nil; session.phase = .completed; session.unread = true
-        case .failed: session.approval = nil; session.question = nil; session.phase = .failed; session.unread = true
-        case .interrupted: session.approval = nil; session.question = nil; session.phase = .interrupted; session.unread = true
+            if event.source == .workbuddy { session.unread = false }
+        case .turnStopped:
+            if event.source == .workbuddy { workbuddyTurnResults.insert(session.id) }
+            session.approval = nil; session.question = nil; session.phase = .idle; session.unread = true
+        case .sessionEnded:
+            session.approval = nil; session.question = nil
+            if !preservesWorkBuddyResult { session.phase = .idle; session.unread = false }
+        case .completed:
+            if event.source == .workbuddy { workbuddyTurnResults.insert(session.id) }
+            session.approval = nil; session.question = nil; session.phase = .completed; session.unread = true
+        case .failed:
+            if event.source == .workbuddy { workbuddyTurnResults.insert(session.id) }
+            session.approval = nil; session.question = nil; session.phase = .failed; session.unread = true
+        case .interrupted:
+            if event.source == .workbuddy { workbuddyTurnResults.insert(session.id) }
+            session.approval = nil; session.question = nil; session.phase = .interrupted; session.unread = true
         }
         if !(hookApprovals[session.id] ?? []).isEmpty, !session.hasPendingQuestion {
             syncHookApprovals(&session)
@@ -254,7 +307,7 @@ public struct SessionReducer: Sendable {
         guard var session = sessionsByID[sessionKey] else { return false }
         if !force, session.phase == .running { return false }
         if let approval = session.approval, !approval.isExpired() {
-            guard [ProviderID.claude, .codex, .qoder].contains(session.source), !approval.canApprove && !approval.canDeny,
+            guard ([ProviderID.claude, .codex, .qoder].contains(session.source) || isWorkBuddyNotice(session)), !approval.canApprove && !approval.canDeny,
                   !(hookApprovals[sessionKey] ?? []).contains(where: { $0.canApprove || $0.canDeny }) else { return false }
             hookApprovals.removeValue(forKey: sessionKey)
         }
@@ -276,7 +329,10 @@ public struct SessionReducer: Sendable {
         }
         guard var session = sessionsByID[sessionKey], var approval = session.approval, approval.id == requestID else { return }
         approval.expiresAt = min(approval.expiresAt ?? date, date); approval.canApprove = false; approval.canDeny = false; session.approval = approval
-        if session.phase == .waitingApproval { session.phase = .idle; session.unread = false; session.detail = "请求已失效，请回原工具处理。" }
+        if session.phase == .waitingApproval {
+            if isWorkBuddyNotice(session) { session.detail = "状态待核实，请回 WorkBuddy 查看。" }
+            else { session.phase = .idle; session.unread = false; session.detail = "请求已失效，请回原工具处理。" }
+        }
         restoreCodexQuestion(&session)
         sessionsByID[sessionKey] = session
     }
@@ -292,7 +348,12 @@ public struct SessionReducer: Sendable {
             if let approval = session.approval, approval.isExpired(at: date) { expireApproval(sessionKey: key, requestID: approval.id, at: date); session = sessionsByID[key] ?? session }
             if var question = session.question, question.isExpired(at: date) {
                 question.canAnswer = false; session.question = question
-                if session.phase == .waitingQuestion { session.phase = .idle; session.unread = false }
+                if session.phase == .waitingQuestion {
+                    if session.source == .workbuddy {
+                        // Only the source can confirm whether this question was answered.
+                        session.detail = "状态待核实，请回 WorkBuddy 查看。"
+                    } else { session.phase = .idle; session.unread = false }
+                }
                 sessionsByID[key] = session
             }
         }

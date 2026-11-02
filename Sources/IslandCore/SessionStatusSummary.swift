@@ -2,13 +2,15 @@ import Foundation
 
 /// Shared status categories, ordered by the attention they require.
 public enum SessionStatusKind: String, CaseIterable, Sendable, Identifiable {
-    case question, approval, attention, running, result
+    case question, approval, sourceInput, unverified, attention, running, result
 
     public var id: String { rawValue }
     public var title: String {
         switch self {
         case .question: return "待回答"
         case .approval: return "待批准"
+        case .sourceInput: return "待处理"
+        case .unverified: return "待核实"
         case .attention: return "失败或中断"
         case .running: return "运行中"
         case .result: return "新结果"
@@ -18,7 +20,10 @@ public enum SessionStatusKind: String, CaseIterable, Sendable, Identifiable {
     /// Visibility is deliberately separate: callers can also classify history rows.
     public init(session: IslandSession) {
         if session.hasPendingQuestion { self = .question }
-        else if session.hasPendingApproval { self = .approval }
+        else if session.hasPendingApproval {
+            self = session.source == .workbuddy && session.approval?.canApprove == false && session.approval?.canDeny == false ? .sourceInput : .approval
+        }
+        else if session.needsStatusVerification { self = .unverified }
         else {
             switch session.phase {
             case .failed, .interrupted: self = .attention

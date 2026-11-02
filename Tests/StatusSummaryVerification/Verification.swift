@@ -23,10 +23,14 @@ private struct StatusSummaryVerification {
             let future = Date().addingTimeInterval(3600)
             let pendingQuestion = session(.waitingQuestion, unread: false, question: .init(id: "question", prompt: "which?", expiresAt: future))
             let pendingApproval = session(.waitingApproval, unread: false, approval: .init(id: "approval", toolName: "Bash", expiresAt: future))
-            let all = [stopped, running, session(.interrupted), pendingApproval, session(.completed), pendingQuestion, session(.failed)]
+            let unverified = IslandSession(source: .workbuddy, sessionID: "unverified", title: "WorkBuddy question", phase: .waitingQuestion, unread: false,
+                question: .init(id: "old-question", prompt: "which?", expiresAt: Date().addingTimeInterval(-1)))
+            let sourceInput = IslandSession(source: .workbuddy, sessionID: "native-notice", title: "WorkBuddy native notice", phase: .waitingApproval,
+                approval: .init(id: "workbuddy-notice-native", toolName: "", expiresAt: future))
+            let all = [stopped, running, session(.interrupted), pendingApproval, session(.completed), pendingQuestion, session(.failed), sourceInput, unverified]
             let summary = SessionStatusSummary.counts(for: all)
             try expect(summary.map(\.kind) == SessionStatusKind.allCases, "all categories retain priority order independent of input order")
-            try expect(summary.map(\.count) == [1, 1, 2, 1, 2], "failed and interrupted merge, completed and stopped merge")
+            try expect(summary.map(\.count) == [1, 1, 1, 1, 2, 1, 2], "source-native waits and unverified observations stay distinct from results and approvals")
             try expect(summary.reduce(0) { $0 + $1.count } == all.filter(\.isVisibleOnIsland).count, "summary total equals visible input count")
             try expect(SessionStatusKind(session: pendingQuestion) == .question && SessionStatusKind(session: pendingApproval) == .approval, "read pending interactions still classify as pending")
             let expired = Date().addingTimeInterval(-3600)
@@ -39,7 +43,9 @@ private struct StatusSummaryVerification {
             try expect(many.first?.count == 123 && many.first?.displayCount == "99+", "display caps without losing true count")
             try expect(SessionStatusCount(kind: .running, count: 99).displayCount == "99", "99 does not cap prematurely")
             try expect(SessionStatusCount(kind: .result, count: 100).displayCount == "99+", "100 starts capped display")
-            try expect(SessionStatusKind.allCases.map(\.title) == ["待回答", "待批准", "失败或中断", "运行中", "新结果"], "accessibility category titles are meaningful")
+            try expect(SessionStatusKind.allCases.map(\.title) == ["待回答", "待批准", "待处理", "待核实", "失败或中断", "运行中", "新结果"], "accessibility category titles are meaningful")
+            try expect(SessionStatusKind(session: unverified) == .unverified && unverified.isVisibleOnIsland && !unverified.hasPendingQuestion,
+                       "expired WorkBuddy observation remains visible without claiming a live question")
             try expect(Set(summary.map(\.id)).count == summary.count, "category identity is stable and unique")
             try expect(SessionStatusSummary.counts(for: all + hidden + [readRunning]).reduce(0) { $0 + $1.count } == (all + hidden + [readRunning]).filter(\.isVisibleOnIsland).count, "mixed read and expired inputs preserve total invariant")
             print("PASS: \(checks) status summary checks")

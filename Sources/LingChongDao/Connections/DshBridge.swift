@@ -11,7 +11,7 @@ public enum DshBridge {
     public static let rowID = "lingchongdao-hooks"
     /// Only the bundle's runtime files are copied; `cordis.patch.yml` is the layer,
     /// `icon.png` what the harness paints, and `locale/*.json` the display title.
-    static let pluginFiles = ["package.json", "index.js", "cordis.patch.yml", "icon.png", "locale/en.json", "locale/zh.json"]
+    static let pluginFiles = ["package.json", "index.js", "navigation.js", "client.js", "cordis.patch.yml", "icon.png", "locale/en.json", "locale/zh.json"]
     /// Marker of the 0.1.x loader row, kept only to remove it during migration.
     public static let beginMarker = "# lingchongdao-managed:v1:dsh begin"
     public static let endMarker = "# lingchongdao-managed:v1:dsh end"

@@ -1,6 +1,6 @@
 {
   "name": "lingchongdao-dsh-hooks",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -13,19 +13,30 @@
     "./icon": "./icon.png",
     "./locale/en.json": "./locale/en.json",
     "./locale/zh.json": "./locale/zh.json",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./client": "./client.js"
   },
   "files": [
     "LICENSE",
     "NOTICE.md",
     "index.js",
     "cordis.patch.yml",
+    "navigation.js",
+    "client.js",
     "icon.png",
     "locale"
   ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-workspace",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-ui-layout"
+      ]
     }
   }
 }

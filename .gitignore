@@ -3,6 +3,8 @@ dist/
 .DS_Store
 *.log
 .swiftpm/
+__pycache__/
+*.pyc
 
 !docs/evidence/*.log
 

@@ -194,6 +194,11 @@ struct WorkbenchView: View {
                                     Text(session.displayTitle).fontWeight(.medium).lineLimit(1)
                                     Text("\(session.sourceDisplayName) · \(session.cwd.isEmpty ? session.detail : URL(fileURLWithPath: session.cwd).lastPathComponent)")
                                         .font(.system(size: 12)).foregroundStyle(BossWorkbenchStyle.muted).lineLimit(1)
+                                    if session.source == .workbuddy, !session.cwd.isEmpty,
+                                       session.phase == .idle, session.question == nil, !session.detail.isEmpty {
+                                        Text(session.detail).font(.system(size: 12))
+                                            .foregroundStyle(BossWorkbenchStyle.muted).lineLimit(2)
+                                    }
                                 }.frame(maxWidth: .infinity, alignment: .leading)
                                 Text(phaseTitle(session)).font(.system(size: 12)).foregroundStyle(BossWorkbenchStyle.muted)
                                 Button(model.navigationLabel(for: session)) { model.navigate(to: session) }.buttonStyle(BossButtonStyle(kind: .quiet)).help(model.navigationHelp(for: session))
@@ -223,7 +228,11 @@ struct WorkbenchView: View {
     }
 
     private func phaseTitle(_ session: IslandSession) -> String {
-        if session.approval != nil { return session.approval?.isExpired() == true ? "请求已过期" : "等待批准" }
+        if session.needsStatusVerification { return "状态待核实" }
+        if session.approval != nil {
+            if session.source == .workbuddy && session.approval?.canApprove == false && session.approval?.canDeny == false { return "待确认" }
+            return session.approval?.isExpired() == true ? "请求已过期" : "等待批准"
+        }
         if session.question != nil { return "等待回答" }
         switch session.phase { case .running: return "正在执行"; case .completed: return "已完成"; case .failed: return "执行失败"; case .interrupted: return "已中断"; default: return "本轮结束" }
     }
@@ -246,7 +255,7 @@ struct ScreenSettingsView: View {
                 settingToggle("显示灵宠岛", detail: "在屏幕顶部查看会话进展、回答问题和处理权限请求。", value: $settings.enabled)
                 settingToggle("空闲时显示", detail: "没有会话活动时，显示默认灵宠老板鼠。点击可打开工作台。", value: $settings.idleVisible)
                 settingToggle("在其他显示器上显示", detail: "连接多个显示器时，在各屏幕顶部同步显示灵宠岛。", value: $settings.additionalDisplays)
-                settingToggle("回到应用后收起结束提示", detail: "来源应用在前台停留 1 秒后，收起该应用已有的结束提示。多条结束提示会一起收起；运行中、待回答和权限请求仍保留。", value: $settings.autoClearFinishedOnAppFocus)
+                settingToggle("回到应用后收起结束提示", detail: "来源应用在前台停留 1 秒后，收起已有的结束提示。DeepSeek Harness 需确认进入对应会话后才收起；运行中、待回答和权限请求仍保留。", value: $settings.autoClearFinishedOnAppFocus)
                 settingToggle("需要处理时自动展开", detail: "来源任务出现待批准、待回答、本轮结束、完成、失败或中断等需要你处理的状态时，顶部岛自动下拉提示，不需要把鼠标移上去；无操作 8 秒后自动收起，鼠标停在岛上时延后收起。", value: $settings.autoRevealOnFinish)
                 settingToggle("触觉反馈", detail: "通过 Force Touch 触控板提供交互反馈，其他设备暂不支持。", value: $settings.haptics)
                 VStack(alignment: .leading, spacing: 16) {

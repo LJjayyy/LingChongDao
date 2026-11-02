@@ -18,6 +18,7 @@ version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plis
 /usr/bin/lipo "$app_dir/Contents/MacOS/LingChongDao" -verify_arch arm64
 /usr/bin/lipo "$app_dir/Contents/MacOS/lingchongdao-hook" -verify_arch arm64
 /usr/bin/codesign --verify --deep --strict "$app_dir"
+python3 "$project_dir/scripts/verify-release-security.py" "$app_dir"
 
 output_dir="$project_dir/dist/release"
 mkdir -p "$output_dir"

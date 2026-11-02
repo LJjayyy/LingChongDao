@@ -58,6 +58,12 @@ struct SourceAttentionVerification {
         await send("Stop", "remote", host: "remote-host")
         await send("Stop", "unknown", origin: nil)
         await send("Stop", "generic", source: .generic, origin: nil)
+        await send("Stop", "dsh-A", source: .dsh, origin: .dshDesktop)
+        await send("Stop", "dsh-B", source: .dsh, origin: .dshDesktop)
+        let dshVisit = model.captureFinishedReminders(for: "com.deepseek.dsh")
+        model.acknowledgeFinishedReminders(dshVisit)
+        try check(dshVisit.isEmpty && session("dsh-A").unread && session("dsh-B").unread,
+                  "DSH application focus preserves every reminder until an exact conversation is confirmed")
         await send("SessionStart", "running")
         await send("UserQuestion", "question")
         await send("PermissionRequest", "approval")
