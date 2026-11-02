@@ -117,9 +117,9 @@ struct CompactWindowVerification {
             hover.coordinator = hoverCoordinator
             defer { hover.invalidate() }
             // Await state transitions with a bounded deadline: a task can start late
-            // on a shared runner. Fixed sleeps remain for cancellation/hold checks.
+            // on a shared runner. Keep pending enters and their cancellation in one
+            // actor turn; even a short sleep can resume after the enter deadline.
             hover.setHovered(active: true, hasActivity: true)
-            try await Task.sleep(for: .milliseconds(40))
             hover.setHovered(active: false, hasActivity: true)
             try await Task.sleep(for: IslandMotion.hoverEnterDelay + .milliseconds(45))
             try require(!hover.expanded && !hover.hovering, "quick entry and exit cancel the pending open")
@@ -142,7 +142,6 @@ struct CompactWindowVerification {
 
             // A click that races the enter task must not later become hover-owned.
             hover.setHovered(active: true, hasActivity: true)
-            try await Task.sleep(for: .milliseconds(35))
             hover.expand()
             try await Task.sleep(for: IslandMotion.hoverEnterDelay + .milliseconds(45))
             try require(hover.expanded && hoverCoordinator.keyboardFocusRequests == 1,
@@ -268,7 +267,6 @@ struct CompactWindowVerification {
             explicitTask.invalidate()
 
             hover.setHovered(active: true, hasActivity: true)
-            try await Task.sleep(for: .milliseconds(35))
             hover.invalidate()
             try await Task.sleep(for: IslandMotion.hoverEnterDelay + .milliseconds(45))
             try require(!hover.expanded && hover.coordinator == nil, "window invalidation cancels a pending enter")
