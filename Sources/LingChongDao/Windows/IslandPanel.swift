@@ -5,6 +5,7 @@ import SwiftUI
 final class IslandPanel: NSPanel {
     var acceptsKeyboard = false
     var onEscape: (() -> Void)?
+    var onScrollCollapse: ((NSEvent) -> Bool)?
 
     override var canBecomeKey: Bool { acceptsKeyboard }
     override var canBecomeMain: Bool { false }
@@ -32,6 +33,9 @@ final class IslandPanel: NSPanel {
     }
 
     override func sendEvent(_ event: NSEvent) {
+        // Inspect before NSHostingView routes the event into a row or scroll
+        // view. Returning false preserves their native gesture handling.
+        if event.type == .scrollWheel, onScrollCollapse?(event) == true { return }
         if event.type == .keyDown, event.keyCode == 53 {
             onEscape?()
             return

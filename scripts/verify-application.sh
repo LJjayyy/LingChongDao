@@ -13,6 +13,8 @@ else
 fi
 swiftc -parse-as-library -swift-version 5 -I "$binary_dir" -I "$binary_dir/Modules" \
   Sources/LingChongDao/Models/AppSettings.swift Sources/LingChongDao/Models/AppModel.swift \
+  Sources/LingChongDao/Windows/IslandMotion.swift Sources/LingChongDao/Windows/IslandWindowContext.swift \
+  Sources/LingChongDao/Windows/IslandPanel.swift Sources/LingChongDao/Windows/IslandWindowCoordinator.swift \
   Tests/VerificationSupport/CodexReviewFixture.swift \
   Tests/ApplicationVerification/ApplicationVerification.swift \
   "${core_link[@]}" -o "$binary_dir/lingchongdao-verify-application"

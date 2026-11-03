@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Darwin
 import IslandCore
@@ -51,6 +52,24 @@ struct ApplicationVerification {
         try await verifyBuddyApplications()
         try await verifyWorkbenchMessages()
         if CommandLine.arguments.contains("--routing-only") { return }
+        model.loadPreview("completed")
+        let deferred = try unwrap(model.visibleSessions.first, "Completed reminder preview exists")
+        try check(deferred.unread, "A reminder starts unread before putting the island away")
+        model.saveDraft("稍后继续处理", session: deferred)
+        let beforePutAway = model.sessions
+        let presentation = IslandWindowContext(screenID: "application-put-away", hasNotch: false,
+                                               notchHeight: 0, availableWidth: 1920)
+        presentation.revealCompletion(focusing: [deferred.id])
+        let scroll = NSEvent(cgEvent: CGEvent(scrollWheelEvent2Source: nil, units: .line, wheelCount: 1,
+                                             wheel1: 4, wheel2: 0, wheel3: 0)!)!
+        try check(presentation.handleScrollCollapse(scroll, inHeader: true) && !presentation.expanded,
+                  "An upward scroll puts away the reminder presentation")
+        try check(model.sessions == beforePutAway && model.visibleSessions.contains { $0.id == deferred.id && $0.unread },
+                  "Putting the island away preserves the full unread reminder for later follow-up")
+        try check(model.draft(for: deferred) == "稍后继续处理", "Putting the island away preserves its saved draft")
+        presentation.invalidate()
+        model.clearDraft(session: deferred)
+        model.endPreview()
         func event(_ name: String, session: String = "real", turn: String = "current", timestamp: Date = Date(), request: String? = nil, expires: Date? = nil, reviewer: String? = "user") throws -> BridgeEnvelope {
             var raw: [String: JSONValue] = ["hook_event_name": .string(name), "session_id": .string(session), "turn_id": .string(turn), "timestamp": .number(timestamp.timeIntervalSince1970), "title": .string("真实验证任务")]
             if let request {

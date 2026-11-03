@@ -38,6 +38,159 @@ struct CompactWindowVerification {
             }
         }
         do {
+            var scroll = IslandScrollCollapseGesture()
+            func move(_ x: CGFloat = 0, _ up: CGFloat, phase: IslandScrollCollapseGesture.Phase = .changed,
+                      precise: Bool = true, momentum: Bool = false, eligible: Bool = true, time: TimeInterval = 1) -> Bool {
+                scroll.consume(deltaX: x, upwardDelta: up, precise: precise, phase: phase,
+                               momentum: momentum, timestamp: time, canCollapse: eligible)
+            }
+            try require(!move(0, 10, phase: .began) && !move(0, 16)
+                        && move(0, 0, phase: .ended), "trackpad upward travel commits only when the fingers lift")
+            try require(!move(0, 30, phase: .ended), "a repeated terminal event cannot collapse a second surface")
+            try require(!move(0, -40, phase: .began) && !move(0, 0, phase: .ended), "downward scrolling does not collapse")
+            try require(!move(30, 2, phase: .began) && !move(0, 50)
+                        && !move(0, 0, phase: .ended), "horizontal row swipes keep ownership through diagonal tails")
+            try require(!move(0, 40, phase: .began, momentum: true)
+                        && !move(0, 30, phase: .ended, momentum: true), "inertial scrolling cannot initiate collapse")
+            try require(!move(0, 20, phase: .began, eligible: false) && !move(0, 40)
+                        && !move(0, 0, phase: .ended),
+                        "a gesture begun in scrollable content cannot become a collapse after crossing the header")
+            try require(!move(0, 20, phase: .began, eligible: false, time: 1)
+                        && !move(0, 40, time: 2) && !move(0, 0, phase: .ended, time: 2.1),
+                        "a pause in a phased gesture cannot acquire collapse ownership after leaving scrollable content")
+            try require(!move(0, 40, phase: .began) && !move(0, 0, phase: .cancelled), "cancelled gestures never collapse after crossing the threshold")
+            try require(!move(0, 40, phase: .began) && !move(0, -30)
+                        && !move(0, 0, phase: .ended), "pulling an upward swipe back keeps the island open")
+            try require(!move(0, 60, phase: .began) && !move(0, -30)
+                        && !move(0, 0, phase: .ended), "a deliberate reversal cancels even when net travel remains above the threshold")
+            try require(!move(0, 40, phase: .began) && !move(0, -10) && !move(0, 50)
+                        && !move(0, 0, phase: .ended), "a cancelled touch stays cancelled until a fresh gesture")
+            try require(!move(0, 40, phase: .began) && !move(0, -4)
+                        && move(0, 0, phase: .ended), "small trackpad jitter does not cancel an intentional swipe")
+            try require(!move(0, 10, phase: .began) && !move(0, 0, phase: .ended), "short upward swipes stay expanded on release")
+            try require(!move(0, 0, phase: .began) && move(0, 30, phase: .ended), "the terminal event contributes its final travel")
+            try require(!move(0, 1, phase: .unphased, precise: false, time: 2)
+                        && move(0, 2, phase: .unphased, precise: false, time: 2.1), "classic mouse wheels accumulate across adjacent ticks")
+            try require(!move(0, 1, phase: .unphased, precise: false, time: 3)
+                        && !move(0, 2, phase: .unphased, precise: false, time: 4), "isolated wheel ticks do not accumulate indefinitely")
+
+            let putAway = IslandWindowContext(screenID: "scroll-collapse", hasNotch: false, notchHeight: 0, availableWidth: 1920)
+            putAway.setHovered(active: true, hasActivity: true)
+            putAway.revealCompletion(focusing: ["unread-message"])
+            putAway.collapseTemporarily()
+            try require(!putAway.expanded && putAway.attentionFocus == nil, "temporary collapse closes an automatic reveal and releases its presentation focus")
+            putAway.setHovered(active: true, hasActivity: false)
+            putAway.setHovered(active: true, hasActivity: true)
+            try await Task.sleep(for: IslandMotion.idleEncounterEnterDelay + .milliseconds(45))
+            try require(!putAway.expanded, "activity updates under the same pointer cannot undo a temporary collapse")
+            putAway.setHovered(active: false, hasActivity: true)
+            putAway.setHovered(active: true, hasActivity: true)
+            try await waitForExpansion(putAway, true)
+            putAway.collapseTemporarily()
+            putAway.expand()
+            try require(putAway.expanded, "an explicit click can reopen immediately after a temporary collapse")
+            putAway.collapseTemporarily()
+            putAway.revealCompletion(focusing: ["new-message"])
+            try require(putAway.expanded && putAway.attentionFocus == ["new-message"], "a genuinely new announcement can still reveal after a temporary collapse")
+            putAway.setBusy(true)
+            putAway.collapseTemporarily()
+            try require(putAway.expanded && putAway.busy, "a gesture cannot interrupt an in-flight action")
+            putAway.setBusy(false)
+
+            // Send a real AppKit scroll event through the actual panel dispatch
+            // hook, before any hosted row/scroll view can consume it.
+            _ = NSApplication.shared
+            let panel = IslandPanel()
+            let wheelCG = CGEvent(scrollWheelEvent2Source: nil, units: .line, wheelCount: 1, wheel1: 4, wheel2: 0, wheel3: 0)!
+            let wheel = NSEvent(cgEvent: wheelCG)!
+            var routedScrolls = 0
+            panel.onScrollCollapse = { event in
+                routedScrolls += 1
+                return putAway.handleScrollCollapse(event, inHeader: true)
+            }
+            panel.sendEvent(wheel)
+            try require(routedScrolls == 1 && !putAway.expanded, "NSPanel.sendEvent routes upward wheel input to presentation-only collapse")
+            putAway.setContentSize(width: 552, height: 700)
+            putAway.expand()
+            try require(!putAway.handleScrollCollapse(wheel, inHeader: false) && putAway.expanded,
+                        "long content keeps native vertical scrolling in its body")
+            // A fresh event sequence in the header remains available even when
+            // long content is present, without scrolling or clearing a row.
+            wheelCG.timestamp += 1_000_000_000
+            let laterWheel = NSEvent(cgEvent: wheelCG)!
+            try require(putAway.handleScrollCollapse(laterWheel, inHeader: true) && !putAway.expanded,
+                        "the header can put away an island containing scrollable content")
+            putAway.expand()
+            putAway.setContentSize(width: 552, height: 200)
+            let trackpadCG = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: 40, wheel2: 0, wheel3: 0)!
+            trackpadCG.setIntegerValueField(.scrollWheelEventScrollPhase, value: 1)
+            trackpadCG.setIntegerValueField(.scrollWheelEventMomentumPhase, value: 1)
+            let momentum = NSEvent(cgEvent: trackpadCG)!
+            try require(momentum.hasPreciseScrollingDeltas && !momentum.momentumPhase.isEmpty
+                        && !putAway.handleScrollCollapse(momentum, inHeader: false) && putAway.expanded,
+                        "real precise AppKit momentum flags preserve the expanded island")
+            trackpadCG.setIntegerValueField(.scrollWheelEventMomentumPhase, value: 0)
+            trackpadCG.setIntegerValueField(.scrollWheelEventScrollPhase, value: 8)
+            let cancelled = NSEvent(cgEvent: trackpadCG)!
+            try require(cancelled.phase.contains(.cancelled)
+                        && !putAway.handleScrollCollapse(cancelled, inHeader: false) && putAway.expanded,
+                        "real AppKit cancellation flags cannot commit a collapse")
+            trackpadCG.setIntegerValueField(.scrollWheelEventScrollPhase, value: 1)
+            let preciseScroll = NSEvent(cgEvent: trackpadCG)!
+            try require(preciseScroll.phase.contains(.began) && preciseScroll.hasPreciseScrollingDeltas
+                        && putAway.handleScrollCollapse(preciseScroll, inHeader: false) && putAway.expanded,
+                        "real precise AppKit begin flags keep a threshold-crossing swipe reversible")
+            func trackpadEvent(_ delta: Int32, phase: Int64) -> NSEvent {
+                let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1,
+                                    wheel1: delta, wheel2: 0, wheel3: 0)!
+                event.setIntegerValueField(.scrollWheelEventScrollPhase, value: phase)
+                return NSEvent(cgEvent: event)!
+            }
+            try require(putAway.isScrollCollapseActive && putAway.scrollCollapseProgress > 0
+                        && putAway.surfaceWidth < putAway.expandedWidth
+                        && putAway.surfaceHeight < putAway.contentHeight,
+                        "trackpad movement shrinks the surface before release without marking it closed")
+            let beforePullBack = putAway.surfaceHeight
+            putAway.setHovered(active: false, hasActivity: true)
+            try await Task.sleep(for: IslandMotion.hoverExitDelay + .milliseconds(40))
+            try require(putAway.expanded && putAway.isScrollCollapseActive,
+                        "shrinking away from the pointer cannot trigger hover exit while tracking")
+            let pullBack = trackpadEvent(-30, phase: 2)
+            let lift = trackpadEvent(0, phase: 4)
+            try require(pullBack.phase.contains(.changed) && lift.phase.contains(.ended),
+                        "synthetic AppKit events expose real change and release phases")
+            panel.sendEvent(pullBack)
+            try require(putAway.isScrollCollapseActive && putAway.surfaceHeight > beforePullBack,
+                        "pulling back visibly expands the surface during the same gesture")
+            panel.sendEvent(lift)
+            try require(!putAway.isScrollCollapseActive && putAway.scrollCollapseProgress == 0
+                        && putAway.surfaceHeight == putAway.contentHeight,
+                        "releasing a reversed gesture restores the full surface target")
+            try require(putAway.expanded, "the panel keeps the island open after an upward swipe is pulled back before release")
+            panel.sendEvent(trackpadEvent(40, phase: 1))
+            try require(putAway.expanded, "a fresh upward swipe still waits for release at the actual panel entry")
+            panel.sendEvent(trackpadEvent(0, phase: 4))
+            try require(!putAway.expanded, "lifting after a fresh deliberate upward swipe closes through the actual panel entry")
+            putAway.expand()
+            panel.sendEvent(trackpadEvent(10, phase: 1))
+            try require(putAway.isScrollCollapseActive && putAway.scrollCollapseProgress > 0,
+                        "a short upward touch supplies partial progress")
+            panel.sendEvent(lift)
+            try require(putAway.expanded && !putAway.isScrollCollapseActive && putAway.scrollCollapseProgress == 0,
+                        "an insufficient upward touch springs back on release")
+            panel.sendEvent(trackpadEvent(80, phase: 1))
+            panel.sendEvent(trackpadEvent(0, phase: 8))
+            try require(putAway.expanded && !putAway.isScrollCollapseActive && putAway.scrollCollapseProgress == 0,
+                        "system cancellation clears partial progress and retains the open island")
+            panel.sendEvent(trackpadEvent(80, phase: 1))
+            putAway.collapse()
+            putAway.expand()
+            panel.sendEvent(lift)
+            try require(putAway.expanded && putAway.scrollCollapseProgress == 0,
+                        "an explicit state change cancels an old gesture before reopening")
+            panel.close()
+            putAway.invalidate()
+
             let context = IslandWindowContext(screenID: "synthetic", hasNotch: true, notchHeight: 38, availableWidth: 1512, notchWidth: 120)
             let coordinator = IslandWindowCoordinator()
             context.coordinator = coordinator

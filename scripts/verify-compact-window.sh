@@ -7,6 +7,7 @@ trap 'rm -rf "$verification_dir"' EXIT
 swiftc -parse-as-library -swift-version 5 \
   Sources/LingChongDao/Windows/IslandMotion.swift \
   Sources/LingChongDao/Windows/IslandWindowContext.swift \
+  Sources/LingChongDao/Windows/IslandPanel.swift \
   Tests/CompactWindowVerification/Verification.swift \
   -o "$verification_dir/lingchongdao-verify-compact-window"
 "$verification_dir/lingchongdao-verify-compact-window"

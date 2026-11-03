@@ -199,10 +199,12 @@ final class MotionRecorder: @unchecked Sendable {
 @MainActor
 private final class TestPointer {
     var inside = false
+    var localPoint: NSPoint?
     func location() -> NSPoint {
         guard inside, let panel = NSApplication.shared.windows.first(where: { $0 is IslandPanel }) else {
             return NSPoint(x: -20000, y: -20000)
         }
+        if let localPoint { return panel.convertPoint(toScreen: localPoint) }
         return NSPoint(x: panel.frame.midX, y: panel.frame.maxY - 10)
     }
 }
@@ -322,6 +324,79 @@ struct MotionVerification {
             wait(0.95)
             finish("view-exit-\(Int(pulse * 1000))ms", since: start)
         }
+        // Drive actual NSEvent phases into the production context and observe
+        // the actual IslandShell evaluation. The view must reach every partial
+        // target during the touch, rather than springing toward stale targets.
+        context.expand()
+        pointer.inside = true
+        wait(0.7)
+        let interactiveStart = recorder.now
+        var interactiveResults: [Bool] = []
+        let gesturePanel = app.windows.first { $0 is IslandPanel } as! IslandPanel
+        let bodyDepth = context.compactHeight + (context.contentHeight - context.compactHeight) * 0.70
+        let gesturePoint = NSPoint(x: gesturePanel.frame.width / 2, y: gesturePanel.frame.height - bodyDepth)
+        pointer.localPoint = gesturePoint
+        func touch(_ delta: Int32, phase: Int64) {
+            let cg = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1,
+                             wheel1: delta, wheel2: 0, wheel3: 0)!
+            cg.setIntegerValueField(.scrollWheelEventScrollPhase, value: phase)
+            // A CG scroll event has no NSWindow identity. Resolve its local
+            // coordinate transform from two probes, then send through the real
+            // panel/Coordinator hook at the same body location for every phase.
+            cg.location = .zero
+            let origin = NSEvent(cgEvent: cg)!.locationInWindow
+            cg.location = CGPoint(x: 1, y: 1)
+            let unit = NSEvent(cgEvent: cg)!.locationInWindow
+            cg.location = CGPoint(x: (gesturePoint.x - origin.x) / (unit.x - origin.x),
+                                  y: (gesturePoint.y - origin.y) / (unit.y - origin.y))
+            gesturePanel.sendEvent(NSEvent(cgEvent: cg)!)
+        }
+        func checkTracking(_ name: String) {
+            wait(0.04)
+            let sample = recorder.snapshot().last
+            let matches = sample.map {
+                abs($0.width - context.surfaceWidth) < 1 &&
+                abs($0.height - context.surfaceHeight) < 1 &&
+                abs($0.expansion - context.surfaceExpansion) < 0.01
+            } ?? false
+            let passed = context.expanded && context.isScrollCollapseActive && matches
+            interactiveResults.append(passed)
+            print("\(passed ? "PASS" : "FAIL") interactive \(name): shell reaches finger target without an implicit spring")
+        }
+        touch(30, phase: 1)
+        checkTracking("first upward step")
+        let partialHeight = recorder.snapshot().last?.height ?? 0
+        touch(40, phase: 2)
+        checkTracking("continued upward step")
+        let smallHeight = recorder.snapshot().last?.height ?? 0
+        wait(0.08) // Let real pointer polling see that the shell has receded.
+        let retained = context.isScrollCollapseActive && !gesturePanel.ignoresMouseEvents
+            && context.surfaceHeight < bodyDepth
+        interactiveResults.append(retained)
+        print("\(retained ? "PASS" : "FAIL") interactive body gesture retains panel input after shrinking above its starting point")
+        touch(-40, phase: 2)
+        checkTracking("downward reversal")
+        let returnedHeight = recorder.snapshot().last?.height ?? 0
+        interactiveResults.append(smallHeight < partialHeight && returnedHeight > smallHeight)
+        touch(0, phase: 4)
+        wait(0.65)
+        let restored = recorder.snapshot().last.map { abs($0.height - context.contentHeight) < 1 && abs($0.expansion - 1) < 0.01 } ?? false
+        interactiveResults.append(context.expanded && !context.isScrollCollapseActive && restored)
+        print("\(restored ? "PASS" : "FAIL") interactive reversal settles fully open")
+        let interactiveSegment = MotionRecorder.Segment(name: "interactive-reversal", start: interactiveStart,
+            end: recorder.now, hoverHeight: context.compactHeight, targetHeight: context.contentHeight)
+        segments.append(interactiveSegment)
+        topResults.append(recorder.verifyTopAnchor(interactiveSegment))
+        results.append(contentsOf: interactiveResults)
+        touch(70, phase: 1)
+        wait(0.04)
+        touch(0, phase: 4)
+        wait(0.65)
+        let closedSample = recorder.snapshot().last
+        let closed = !context.expanded && !context.isScrollCollapseActive && (closedSample.map { abs($0.expansion) < 0.01 } ?? false)
+        print("\(closed ? "PASS" : "FAIL") interactive upward release settles fully closed")
+        results.append(closed)
+        pointer.localPoint = nil
         close()
         model.endPreview()
         coordinator.update(enabled: true, idleVisible: true, showOnOtherDisplays: false,

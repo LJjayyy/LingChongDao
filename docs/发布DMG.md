@@ -13,7 +13,7 @@
 脚本先构建 Release App 与五个伴随插件，再生成压缩只读 DMG。版本取自构建产物的 `CFBundleShortVersionString`；当前输出为：
 
 ```text
-dist/release/LingChongDao-0.1.40-macOS-arm64.dmg
+dist/release/LingChongDao-0.1.42-macOS-arm64.dmg
 dist/release/SHA256SUMS.txt
 ```
 
@@ -39,11 +39,11 @@ shasum -a 256 -c SHA256SUMS.txt
 
 仓库推送与 App 版本一致的 `vX.Y.Z` 标签后，`.github/workflows/release.yml` 自动构建发布。也可在 Actions 手动指定一个已经存在的版本标签。
 
-工作流从标签获取源码，使用 `macos-15` ARM runner，校验标签、架构和 App 版本，运行公开源码检查和 24 项串行隔离验证，再生成 DMG。构建任务只有读取权限；发布任务获取该构建的确切 artifact ID，复核 SHA-256 和标签提交，再上传 DMG 与校验文件。已有同名 Release 时失败，不替换旧附件。
+工作流从标签获取源码，使用 `macos-15` ARM runner，校验标签、架构和 App 版本，运行公开源码检查和 28 项串行隔离验证，再生成 DMG。构建任务只有读取权限；发布任务获取该构建的确切 artifact ID，复核 SHA-256 和标签提交，再上传 DMG 与校验文件。已有同名 Release 时失败，不替换旧附件。
 
-当前版本为 `0.1.40`（build `41`），版本号在 `scripts/build-app.sh` 的 Info.plist 中维护。后续发布前同步更新版本和 `docs/RELEASE-NOTES.md`，再创建对应标签。
+当前版本为 `0.1.42`（build `43`），版本号在 `scripts/build-app.sh` 的 Info.plist 中维护。后续发布前同步更新版本和 `docs/RELEASE-NOTES.md`，再创建对应标签。
 
-本地生成 DMG 不会上传 GitHub、安装 App 或修改来源插件配置。当前 [GitHub 仓库](https://github.com/LJjayyy/LingChongDao)保持私有，Release 与安装包也仅对有仓库访问权限的用户可见；普通源码推送不会创建 Release，推送版本标签才会触发发布工作流。
+本地生成 DMG 不会上传 GitHub、安装 App 或修改来源插件配置。[GitHub 仓库](https://github.com/LJjayyy/LingChongDao)、Release 与安装包均公开可见；普通源码推送不会创建 Release，推送版本标签才会触发发布工作流。
 
 ## 用户安装流程
 

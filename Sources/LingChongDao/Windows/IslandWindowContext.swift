@@ -13,6 +13,18 @@ final class IslandWindowContext: ObservableObject {
     @Published private(set) var compactWidth: CGFloat = 212
     @Published private(set) var compactHeight: CGFloat = 32
     @Published private(set) var expanded = false
+    @Published private(set) var scrollCollapseProgress: CGFloat = 0
+    @Published private(set) var isScrollCollapseActive = false
+
+    var surfaceExpansion: CGFloat { expanded ? 1 - scrollCollapseProgress : 0 }
+    var surfaceWidth: CGFloat {
+        let compact = compactWidth + (hovering ? IslandMotion.hoverWidth : 0)
+        return compact + (expandedWidth - compact) * surfaceExpansion
+    }
+    var surfaceHeight: CGFloat {
+        let compact = compactHeight + (hovering ? IslandMotion.hoverHeight : 0)
+        return compact + (contentHeight - compact) * surfaceExpansion
+    }
     @Published private(set) var hovering = false
     @Published private(set) var idleEncounterActive = false
     @Published private(set) var idleEncounterNumber = 0
@@ -31,6 +43,9 @@ final class IslandWindowContext: ObservableObject {
     private var autoRevealed = false
     private var openedByHover = false
     private var hasActivity = false
+    private var suppressHoverUntilExit = false
+    private var hasScrollableContent = false
+    private var scrollCollapseGesture = IslandScrollCollapseGesture()
     private var compactLeadingWidth: CGFloat = 20
     private var compactTrailingWidth: CGFloat = 0
     private var compactWidthPercent: Double = 100
@@ -47,6 +62,8 @@ final class IslandWindowContext: ObservableObject {
     }
 
     func expand() {
+        resetScrollCollapse()
+        suppressHoverUntilExit = false
         cancelAutoCollapse()
         attentionFocus = nil
         setExpanded(true, fromHover: false)
@@ -54,6 +71,7 @@ final class IslandWindowContext: ObservableObject {
     }
 
     func collapse() {
+        resetScrollCollapse()
         cancelAutoCollapse()
         hoverTask?.cancel()
         hoverTask = nil
@@ -83,7 +101,41 @@ final class IslandWindowContext: ObservableObject {
 
     func toggle() { expanded ? collapse() : expand() }
 
+    /// Presentation-only dismissal: provider unread state and saved drafts are
+    /// owned by AppModel and are deliberately untouched here.
+    func collapseTemporarily() {
+        guard expanded, !busy else { return }
+        suppressHoverUntilExit = true
+        collapse()
+    }
+
+    func handleScrollCollapse(_ event: NSEvent, inHeader: Bool) -> Bool {
+        let phase: IslandScrollCollapseGesture.Phase
+        if event.phase.contains(.cancelled) { phase = .cancelled }
+        else if event.phase.contains(.began) { phase = .began }
+        else if event.phase.contains(.ended) { phase = .ended }
+        else if event.phase.isEmpty { phase = .unphased }
+        else { phase = .changed }
+        // AppKit reverses deltas for natural scrolling. Normalize to physical
+        // finger/wheel direction so an upward gesture always means "put away".
+        let upward = event.scrollingDeltaY * (event.isDirectionInvertedFromDevice ? -1 : 1)
+        let wasTracking = isScrollCollapseActive
+        let eligible = expanded && !busy && (wasTracking || inHeader || (!hasScrollableContent && editingRequestID == nil))
+        let shouldCollapse = scrollCollapseGesture.consume(deltaX: event.scrollingDeltaX, upwardDelta: upward,
+            precise: event.hasPreciseScrollingDeltas, phase: phase,
+            momentum: !event.momentumPhase.isEmpty, timestamp: event.timestamp, canCollapse: eligible)
+        isScrollCollapseActive = scrollCollapseGesture.isTracking
+        scrollCollapseProgress = scrollCollapseGesture.progress
+        if isScrollCollapseActive { hoverTask?.cancel(); hoverTask = nil }
+        if shouldCollapse { collapseTemporarily() }
+        else if wasTracking || isScrollCollapseActive { coordinator?.contextGeometryDidChange(self) }
+        return shouldCollapse || wasTracking || isScrollCollapseActive
+    }
+
     func setHovered(active: Bool, hasActivity: Bool) {
+        // Shrinking beneath the pointer must not create a hover-exit dismissal.
+        guard !isScrollCollapseActive else { return }
+        if !active { suppressHoverUntilExit = false }
         let activityChanged = hasActivity != self.hasActivity
         guard active != hovering || activityChanged else { return }
         hovering = active
@@ -91,7 +143,7 @@ final class IslandWindowContext: ObservableObject {
         hoverTask?.cancel()
         hoverTask = nil
 
-        if active, !expanded {
+        if active, !expanded, !suppressHoverUntilExit {
             let delay = hasActivity ? IslandMotion.hoverEnterDelay : IslandMotion.idleEncounterEnterDelay
             hoverTask = Task { [weak self] in
                 try? await Task.sleep(for: delay)
@@ -138,7 +190,12 @@ final class IslandWindowContext: ObservableObject {
 
     func setBusy(_ active: Bool) {
         busy = active
-        if active { cancelAutoCollapse() }
+        if active {
+            let wasTracking = isScrollCollapseActive
+            resetScrollCollapse()
+            cancelAutoCollapse()
+            if wasTracking { coordinator?.contextGeometryDidChange(self) }
+        }
         // Re-evaluate a hover-opened surface once its temporary protection ends.
         if !active, !hovering, openedByHover, editingRequestID == nil {
             hovering = true
@@ -147,6 +204,7 @@ final class IslandWindowContext: ObservableObject {
     }
 
     func setContentSize(width: CGFloat, height: CGFloat) {
+        hasScrollableContent = height > 480.5
         let boundedWidth = min(max(1, width), max(1, availableWidth - 24))
         let boundedHeight = min(max(32, height), 480)
         guard abs(expandedWidth - boundedWidth) > 0.5 || abs(contentHeight - boundedHeight) > 0.5 else { return }
@@ -223,12 +281,19 @@ final class IslandWindowContext: ObservableObject {
     }
 
     func invalidate() {
+        resetScrollCollapse()
         cancelAutoCollapse()
         hoverTask?.cancel()
         hoverTask = nil
         idleEncounterActive = false
         endEditing()
         coordinator = nil
+    }
+
+    private func resetScrollCollapse() {
+        scrollCollapseGesture.reset()
+        isScrollCollapseActive = false
+        scrollCollapseProgress = 0
     }
 
     private func scheduleAutoCollapse(after delay: Duration) {
@@ -238,7 +303,7 @@ final class IslandWindowContext: ObservableObject {
             guard !Task.isCancelled, let self, self.autoRevealed, self.expanded else { return }
             // Never yank the surface away from a pointer or an active draft;
             // re-check shortly instead, then close once the user is done.
-            if self.hovering || self.editingRequestID != nil || self.busy {
+            if self.hovering || self.editingRequestID != nil || self.busy || self.isScrollCollapseActive {
                 self.scheduleAutoCollapse(after: IslandMotion.completionRevealRetry)
                 return
             }

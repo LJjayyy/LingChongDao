@@ -115,6 +115,12 @@ final class IslandWindowCoordinator {
                 entry = Entry(context: context, panel: panel, screen: screen)
                 entries[id] = entry
                 panel.onEscape = { [weak context] in context?.collapse() }
+                panel.onScrollCollapse = { [weak self, weak context, weak panel] event in
+                    guard let self, let context, let panel, let entry = self.entries[context.screenID],
+                          (context.isScrollCollapseActive || self.hitPath(for: entry).contains(event.locationInWindow)) else { return false }
+                    let inHeader = event.locationInWindow.y >= panel.frame.height - context.compactHeight
+                    return context.handleScrollCollapse(event, inHeader: inHeader)
+                }
                 let host = IslandHostingView(rootView: AnyView(IslandHostingRoot(context: context, content: content(context))))
                 host.acceptsPoint = { [weak self, weak context] point in
                     guard let self, let context, let entry = self.entries[context.screenID] else { return false }
@@ -260,24 +266,23 @@ final class IslandWindowCoordinator {
     private func updateMousePassthrough(_ entry: Entry) {
         let local = entry.panel.convertPoint(fromScreen: pointerLocation())
         let inside = hitPath(for: entry).contains(local)
-        entry.panel.ignoresMouseEvents = !inside
+        entry.panel.ignoresMouseEvents = !inside && !entry.context.isScrollCollapseActive
         entry.context.setHovered(active: inside, hasActivity: settings.hasSessions)
     }
 
     /// Coordinates are in the unflipped window coordinate system, including shoulders.
     private func hitPath(for entry: Entry) -> NSBezierPath {
         let context = entry.context
-        let hoverGrow = context.hovering && !context.expanded
-        let width = context.expanded ? context.expandedWidth : context.compactWidth + (hoverGrow ? IslandMotion.hoverWidth : 0)
-        let height = context.expanded ? context.contentHeight : context.compactHeight + (hoverGrow ? IslandMotion.hoverHeight : 0)
+        let width = context.surfaceWidth
+        let height = context.surfaceHeight
         let rect = NSRect(x: (entry.panel.frame.width - width) / 2,
                           y: entry.panel.frame.height - height, width: width, height: height)
         guard context.hasNotch else {
-            let radius: CGFloat = context.expanded ? 24 : 16
+            let radius: CGFloat = 16 + 8 * context.surfaceExpansion
             return NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
         }
-        let shoulder: CGFloat = min(context.expanded ? 19 : 6, width / 4)
-        let radius: CGFloat = min(context.expanded ? 24 : 14, max(0, height - shoulder))
+        let shoulder: CGFloat = min(6 + 13 * context.surfaceExpansion, width / 4)
+        let radius: CGFloat = min(14 + 10 * context.surfaceExpansion, max(0, height - shoulder))
         let left = rect.minX + shoulder
         let right = rect.maxX - shoulder
         let top = rect.maxY

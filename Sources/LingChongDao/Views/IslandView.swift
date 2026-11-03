@@ -23,8 +23,8 @@ struct IslandView: View {
     private var top: IslandSession? { displaySessions.first }
     private var shown: IslandSession? { pinned ?? top }
     private var showsTaskList: Bool { context.attentionFocus == nil && pinned == nil && top != nil && top?.isAwaitingInteraction == false && (top?.phase == .running || displaySessions.count > 1) }
-    private var width: CGFloat { context.expanded ? context.expandedWidth : context.compactWidth + (context.hovering ? IslandMotion.hoverWidth : 0) }
-    private var height: CGFloat { context.expanded ? min(480, context.compactHeight + measuredHeight) : context.compactHeight + (context.hovering ? IslandMotion.hoverHeight : 0) }
+    private var width: CGFloat { context.surfaceWidth }
+    private var height: CGFloat { context.surfaceHeight }
     private var sidePadding: CGFloat { context.hasNotch ? 39 : 20 }
     private var requestKey: String { shown?.question?.id ?? shown?.approval?.id ?? shown?.id ?? "idle" }
     private var expired: Bool {
@@ -46,14 +46,14 @@ struct IslandView: View {
         let height: CGFloat
     }
     private var surfaceTarget: SurfaceTarget { SurfaceTarget(expanded: context.expanded, width: width, height: height) }
-    private var shell: IslandShell { IslandShell(notch: context.hasNotch, expansion: context.expanded ? 1 : 0) }
+    private var shell: IslandShell { IslandShell(notch: context.hasNotch, expansion: context.surfaceExpansion) }
     private var surfaceAnimation: Animation? {
-        guard !reduceMotion else { return nil }
+        guard !reduceMotion, !context.isScrollCollapseActive else { return nil }
         return .spring(duration: IslandMotion.surfaceDuration,
                        bounce: IslandMotion.surfaceBounce, blendDuration: 0.08)
     }
     private var contentAnimation: Animation? {
-        guard !reduceMotion else { return nil }
+        guard !reduceMotion, !context.isScrollCollapseActive else { return nil }
         return context.expanded
             ? .easeOut(duration: IslandMotion.contentEnterDuration).delay(IslandMotion.contentEnterDelay)
             : .easeOut(duration: IslandMotion.contentExitDuration)
@@ -73,15 +73,15 @@ struct IslandView: View {
         ZStack(alignment: .top) {
             compact
                 .frame(width: min(context.compactWidth + (context.hovering ? IslandMotion.hoverWidth : 0), context.availableWidth))
-                .animation(reduceMotion ? nil : .easeOut(duration: context.expanded ? 0.09 : 0.14)) { layer in
-                    layer.opacity(context.expanded ? 0 : 1)
+                .animation(reduceMotion || context.isScrollCollapseActive ? nil : .easeOut(duration: context.expanded ? 0.09 : 0.14)) { layer in
+                    layer.opacity(1 - context.surfaceExpansion)
                 }
                 .allowsHitTesting(!context.expanded)
                 .disabled(context.expanded)
                 .accessibilityHidden(context.expanded)
             expandedLayer
-                .animation(contentAnimation) { layer in layer.opacity(context.expanded ? 1 : 0) }
-                .allowsHitTesting(context.expanded)
+                .animation(contentAnimation) { layer in layer.opacity(context.surfaceExpansion) }
+                .allowsHitTesting(context.expanded && !context.isScrollCollapseActive)
                 .disabled(!context.expanded)
                 .accessibilityHidden(!context.expanded)
         }
@@ -89,7 +89,7 @@ struct IslandView: View {
         .background(shell.fill(.black))
         .contentShape(shell)
         .clipShape(shell)
-        .shadow(color: .black.opacity(context.expanded ? 0.18 : 0), radius: 14, y: 8)
+        .shadow(color: .black.opacity(0.18 * context.surfaceExpansion), radius: 14, y: 8)
         .font(IslandStyle.bodyFont).foregroundStyle(.white)
         .preferredColorScheme(.dark)
         .animation(surfaceAnimation, value: surfaceTarget)
@@ -530,7 +530,7 @@ struct IslandView: View {
     private func updateSize() {
         context.setCompactContentSize(leadingWidth: compactPetWidth, trailingWidth: compactTrailingWidth)
         let baseWidth: CGFloat = (top == nil || showsTaskList) ? 420 : (context.hasNotch ? 590 : 552)
-        context.setContentSize(width: max(baseWidth, context.compactWidth), height: min(480, context.compactHeight + measuredHeight))
+        context.setContentSize(width: max(baseWidth, context.compactWidth), height: context.compactHeight + measuredHeight)
     }
     private func contentDidMeasure(_ value: CGFloat) {
         // Measure natural content at its final expanded width even while closed.
