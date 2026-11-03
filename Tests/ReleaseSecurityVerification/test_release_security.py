@@ -74,6 +74,41 @@ class ReleaseSecurityTests(unittest.TestCase):
         (self.root / 'Contents/link').symlink_to('/tmp')
         self.assertTrue(any('symlink' in e for e in security.inspect_app(self.root)))
 
+    def framework(self):
+        framework = self.root / 'Contents/Frameworks/Sparkle.framework'
+        version = framework / 'Versions/B'
+        (version / 'Resources').mkdir(parents=True)
+        (version / 'Sparkle').write_bytes(b'clean framework')
+        (framework / 'Versions/Current').symlink_to('B')
+        (framework / 'Sparkle').symlink_to('Versions/Current/Sparkle')
+        (framework / 'Resources').symlink_to('Versions/Current/Resources')
+        return framework, version
+
+    def test_standard_framework_links_pass_and_contents_are_scanned(self):
+        _, version = self.framework()
+        self.assertEqual(security.inspect_app(self.root), [])
+        (version / 'Resources/private.pem').write_bytes(b'fixture')
+        self.assertTrue(any('private/local artifact' in e for e in security.inspect_app(self.root)))
+
+    def test_framework_escape_broken_and_unexpected_links_rejected(self):
+        framework, version = self.framework()
+        for destination in ('/tmp', '../../../../../../tmp', 'missing'):
+            link = framework / 'Versions/Current'
+            link.unlink()
+            link.symlink_to(destination)
+            self.assertTrue(any('symlink' in e for e in security.inspect_app(self.root)))
+        (framework / 'Versions/Current').unlink()
+        (framework / 'Versions/Current').symlink_to('B')
+        (version / 'alias').symlink_to('Sparkle')
+        self.assertTrue(any('symlink' in e for e in security.inspect_app(self.root)))
+
+    def test_framework_version_directory_cannot_escape(self):
+        framework, version = self.framework()
+        import shutil
+        shutil.rmtree(version)
+        version.symlink_to(self.root / 'Contents/MacOS')
+        self.assertTrue(any('symlink' in e for e in security.inspect_app(self.root)))
+
     def test_secret_inside_nested_archive_rejected(self):
         nested = io.BytesIO()
         with zipfile.ZipFile(nested, 'w') as z:

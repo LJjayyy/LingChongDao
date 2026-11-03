@@ -33,6 +33,10 @@
 
 ## 素材清单
 
+### 应用更新框架
+
+应用使用 [Sparkle](https://github.com/sparkle-project/Sparkle) 实现更新。该框架及其包含的第三方组件按各自许可证分发，不由本项目根 MIT 许可证重新授权。打包时将上游完整 `LICENSE`（包含其第三方组件许可）保存为 `Contents/Resources/Sparkle-LICENSE`；所用版本固定在 `Package.swift` 和 `Package.resolved`。
+
 ### 默认宠物与品牌图形
 
 | 内容与位置 | 已记录的来源 | 当前许可状态 |

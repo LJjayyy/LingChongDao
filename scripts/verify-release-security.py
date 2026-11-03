@@ -22,6 +22,32 @@ MAX_TOTAL = 1024 * 1024 * 1024
 PROJECT_DIRECTORY = str(Path(__file__).resolve().parent.parent).encode()
 
 
+def safe_framework_link(root, path):
+    """Allow only Sparkle's standard versioned-framework aliases, never escapes."""
+    framework = root / 'Contents/Frameworks/Sparkle.framework'
+    aliases = {
+        'Versions/Current': 'B',
+        'Sparkle': 'Versions/Current/Sparkle',
+        'Resources': 'Versions/Current/Resources',
+        'Headers': 'Versions/Current/Headers',
+        'Modules': 'Versions/Current/Modules',
+        'XPCServices': 'Versions/Current/XPCServices',
+        'PrivateHeaders': 'Versions/Current/PrivateHeaders',
+        'Autoupdate': 'Versions/Current/Autoupdate',
+        'Updater.app': 'Versions/Current/Updater.app',
+    }
+    try:
+        relative = path.relative_to(framework).as_posix()
+        if framework.is_symlink() or relative not in aliases:
+            return False
+        if str(path.readlink()) != aliases[relative]:
+            return False
+        resolved = path.resolve(strict=True)
+        return resolved.is_relative_to(framework.resolve(strict=True))
+    except (OSError, ValueError, RuntimeError):
+        return False
+
+
 def inspect_app(root):
     root = Path(root)
     errors = []
@@ -85,7 +111,8 @@ def inspect_app(root):
         for path in sorted(root.rglob('*')):
             name = path.relative_to(root).as_posix()
             if path.is_symlink():
-                errors.append(f'{name}: symlink is not allowed in the release app')
+                if not safe_framework_link(root, path):
+                    errors.append(f'{name}: symlink is not allowed in the release app')
             elif path.is_file():
                 if path.stat().st_size > MAX_FILE:
                     errors.append(f'{name}: file exceeds inspection limit')

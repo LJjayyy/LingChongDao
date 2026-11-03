@@ -45,6 +45,7 @@ struct LingChongDaoMain {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuItemValidation {
     private let settings: AppSettings
     private let keepAwake = KeepAwakeController.shared
+    private let updates = AppUpdateController.shared
     private let model: AppModel
     private let connections: ConnectionManager
     private let bridgeSocketPath: String
@@ -53,6 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     private var statusItem: NSStatusItem!
     private var workbench: NSWindow?
     private var terminationPending = false
+    private var updateTerminationApproved = false
     private var sourceAttention: SourceAttentionMonitor?
     private var revealTracker = AttentionRevealTracker()
     private var cancellables = Set<AnyCancellable>()
@@ -118,6 +120,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         }.store(in: &cancellables)
         updateWindows()
         Task { await connections.refresh() }
+        updates.start()
         if !CommandLine.arguments.contains("--background") { showWorkbench() }
     }
 
@@ -202,6 +205,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         NSApp.setActivationPolicy(.accessory)
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if updates.isInstalling && !updateTerminationApproved && !model.sessions.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = "安装更新并重新启动？"
+            alert.informativeText = "重启会清空灵宠岛当前的任务列表，正在等待处理的问题请先回来源应用处理。"
+            alert.addButton(withTitle: "安装并重启")
+            alert.addButton(withTitle: "稍后")
+            guard alert.runModal() == .alertFirstButtonReturn else { return .terminateCancel }
+            updateTerminationApproved = true
+        }
         guard keepAwake.isEnabled || keepAwake.isChanging else { return .terminateNow }
         guard !terminationPending else { return .terminateLater }
         terminationPending = true
@@ -209,10 +221,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             guard let self else { sender.reply(toApplicationShouldTerminate: false); return }
             let restored = await self.keepAwake.stopBeforeTermination()
             self.terminationPending = false
-            if !restored { self.showWorkbench() }
+            if !restored { self.updateTerminationApproved = false; self.showWorkbench() }
             sender.reply(toApplicationShouldTerminate: restored)
         }
         return .terminateLater
     }
-    func applicationWillTerminate(_ notification: Notification) { keepAwake.requestStopForTermination(); sourceAttention?.stop(); coordinator?.stop(); model.stopBridge(); PetAppearanceStore.shared.stop(); if let isolatedRoot { try? FileManager.default.removeItem(at: isolatedRoot) } }
+    func applicationWillTerminate(_ notification: Notification) { updates.stop(); keepAwake.requestStopForTermination(); sourceAttention?.stop(); coordinator?.stop(); model.stopBridge(); PetAppearanceStore.shared.stop(); if let isolatedRoot { try? FileManager.default.removeItem(at: isolatedRoot) } }
 }

@@ -2,7 +2,7 @@
 set -euo pipefail
 project_dir="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$project_dir"
-./scripts/build-app.sh release
+./scripts/build-app.sh debug
 swift build --product LingChongDao
 binary_dir="$(swift build --show-bin-path)"
 render_dir="$project_dir/dist/readme-capture"
@@ -54,9 +54,11 @@ for module in IslandCore IslandConnections IslandPets; do
     module_links+=("$binary_dir/$module.build/"*.o)
   fi
 done
+sparkle_framework_dir="$project_dir/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64"
 sources=()
 while IFS= read -r path; do sources+=("$path"); done < <(find Sources/LingChongDao -name '*.swift' ! -name App.swift ! -name PetAppearanceStore.swift ! -name KeepAwakeController.swift ! -path '*/Connections/*' | sort)
 swiftc -parse-as-library -swift-version 5 -I "$binary_dir" -I "$binary_dir/Modules" \
+  -F "$sparkle_framework_dir" -framework Sparkle -Xlinker -rpath -Xlinker "$sparkle_framework_dir" \
   "${sources[@]}" "$render_dir/PetAppearanceStore.swift" "$render_dir/KeepAwakeController.swift" assets/readme/source/Capture.swift \
   "${module_links[@]}" -lsqlite3 -framework IOKit -o "$render_dir/capture"
 "$render_dir/capture" "$project_dir/assets/readme"

@@ -28,24 +28,25 @@ jobs:
           test "$(uname -m)" = arm64
           python3 scripts/verify-public-source.py
 
-      - name: Build public application and plugins
-        run: ./scripts/build-app.sh release
+      - name: Build application with an ephemeral verification key
+        env:
+          LINGCHONGDAO_UPDATE_TESTING: '1'
+        run: |
+          swift Tests/UpdateReleaseVerification/generate-test-key.swift "$RUNNER_TEMP/update-test-key.json"
+          export LINGCHONGDAO_SPARKLE_PUBLIC_KEY=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["public"])' "$RUNNER_TEMP/update-test-key.json")
+          ./scripts/build-app.sh release
 
       - name: Run isolated verification sequentially
         env:
           LINGCHONGDAO_VERIFY_TIMING: report
         run: ./scripts/verify-all.sh
 
-      - name: Package DMG
-        run: ./scripts/package-dmg.sh --no-build
+      - name: Verify signed packaging without distributing test builds
+        run: |
+          export SPARKLE_PRIVATE_KEY=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["private"])' "$RUNNER_TEMP/update-test-key.json")
+          ./scripts/package-dmg.sh --no-build
+          (cd dist/release && shasum -a 256 -c SHA256SUMS.txt)
 
-      - name: Upload development DMG
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: LingChongDao-${{ runner.os }}-${{ runner.arch }}
-          path: |
-            dist/release/LingChongDao-*.dmg
-            dist/release/SHA256SUMS.txt
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 7
+      - name: Remove ephemeral verification key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/update-test-key.json"

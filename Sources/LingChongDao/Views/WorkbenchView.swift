@@ -8,6 +8,7 @@ struct WorkbenchView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var settings: AppSettings
     @ObservedObject var connections: ConnectionManager
+    @ObservedObject var updates = AppUpdateController.shared
     @ObservedObject private var keepAwake = KeepAwakeController.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ViewState private var page = "tasks"
@@ -89,7 +90,21 @@ struct WorkbenchView: View {
                 Text(model.bridgeRunning ? "本地接入已启动" : "本地接入不可用")
                     .font(.system(size: 12)).foregroundStyle(BossWorkbenchStyle.muted)
             }
-            Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "开发版").font(.system(size: 12)).foregroundStyle(BossWorkbenchStyle.muted).padding(.top, 3)
+            Button { updates.presentUpdate() } label: {
+                HStack(spacing: 6) {
+                    Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "开发版")
+                        .font(.system(size: 12)).foregroundStyle(BossWorkbenchStyle.muted)
+                    if updates.hasUpdate {
+                        Circle().fill(Color.red).frame(width: 6, height: 6)
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 3)
+            .accessibilityLabel("应用版本")
+            .accessibilityValue(updates.hasUpdate ? "有新版本可用" : "当前版本")
+            .accessibilityHint("查看应用更新")
         }
         .padding(18)
         .frame(width: 212)

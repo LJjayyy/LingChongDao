@@ -41,10 +41,21 @@ dmg_name="LingChongDao-$version-macOS-arm64.dmg"
 /usr/bin/hdiutil create -volname "灵宠岛 $version" -srcfolder "$payload" \
   -fs HFS+ -format UDZO -nospotlight "$staging_dir/$dmg_name"
 /usr/bin/hdiutil verify "$staging_dir/$dmg_name"
+appcast_options=(
+  --app "$app_dir" --dmg "$staging_dir/$dmg_name"
+  --sign-tool "$project_dir/.build/artifacts/sparkle/Sparkle/bin/sign_update"
+  --notes "$project_dir/docs/RELEASE-NOTES.md"
+  --output "$staging_dir/appcast.xml"
+)
+if [[ -n "${LINGCHONGDAO_PREVIOUS_APPCAST:-}" ]]; then
+  appcast_options+=(--previous-appcast "$LINGCHONGDAO_PREVIOUS_APPCAST")
+fi
+python3 "$project_dir/scripts/create-appcast.py" "${appcast_options[@]}"
 (
   cd "$staging_dir"
-  /usr/bin/shasum -a 256 "$dmg_name" > SHA256SUMS.txt
+  /usr/bin/shasum -a 256 "$dmg_name" appcast.xml > SHA256SUMS.txt
 )
 mv -f "$staging_dir/$dmg_name" "$output_dir/$dmg_name"
+mv -f "$staging_dir/appcast.xml" "$output_dir/appcast.xml"
 mv -f "$staging_dir/SHA256SUMS.txt" "$output_dir/SHA256SUMS.txt"
 printf '已生成安装映像：%s\n校验值：%s\n' "$output_dir/$dmg_name" "$output_dir/SHA256SUMS.txt"

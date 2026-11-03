@@ -4,9 +4,11 @@ project_dir="$(cd "$(dirname "$0")/.." && pwd)"
 [[ "$#" -eq 0 ]] || { echo 'Usage: scripts/verify-all.sh' >&2; exit 2; }
 cd "$project_dir"
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s Tests/ReleaseSecurityVerification
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s Tests/UpdateReleaseVerification
 # Run graphics/timing probes sequentially, and honor each script's own shebang.
 # The real-Claude CLI probe and --live pet inspection remain opt-in.
 checks=(
+  verify-app-updates.sh
   verify.sh verify-runtime-identity.sh verify-codex-plugin-install.sh
   verify-application.sh verify-expired-requests.sh verify-approval-observation.sh
   verify-codex-approvals.sh verify-claude-approvals.sh verify-qoder-approvals.sh

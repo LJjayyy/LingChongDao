@@ -10,7 +10,9 @@ if /usr/bin/pgrep -x 'LingChongDao|AIIsland' >/dev/null; then
   echo "请先从菜单栏退出灵宠岛，再安装更新。" >&2
   exit 1
 fi
-if [[ "$#" -eq 0 ]]; then "$project_dir/scripts/build-app.sh" release; fi
+# Local development must not require production update-signing credentials.
+# Install a separately configured release build with --no-build when needed.
+if [[ "$#" -eq 0 ]]; then "$project_dir/scripts/build-app.sh" debug; fi
 source_app="$project_dir/dist/build.noindex/灵宠岛.app"
 target_app="/Applications/灵宠岛.app"
 plist_tool=/usr/libexec/PlistBuddy

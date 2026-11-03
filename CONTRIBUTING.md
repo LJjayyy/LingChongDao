@@ -7,10 +7,11 @@
 当前面向 macOS 14+ 的 Apple Silicon Mac。源码构建需要 Swift 6 工具链（Xcode 或相应 Command Line Tools）及 Python 3；普通 DMG 用户不需要开发工具。
 
 ```sh
-./scripts/build-app.sh release
+./scripts/build-app.sh debug
 ./scripts/verify-all.sh
-./scripts/package-dmg.sh --no-build
 ```
+
+Debug 构建不会检查或安装应用更新。Release 构建与 DMG 打包需要更新签名密钥，初始化及一次性测试密钥流程见 [发布说明](docs/发布DMG.md)。普通 PR CI 使用临时测试密钥验证打包，不需要生产密钥。
 
 `verify-all.sh` 串行执行不需要真实来源 CLI 的验证，失败时返回非零状态。动效与布局检查需要活动的 macOS 图形会话；其窗口在屏幕外使用合成数据，不安装真实来源插件。运行这些时避免同时进行重型编译，以免干扰时序采样。完整 Xcode 环境还可运行 `swift test`。
 

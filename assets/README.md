@@ -7,7 +7,7 @@
 - 五个接入插件的 `icon.png`：与老板鼠应用图标一致的 256 × 256 标识。
 
 ```sh
-./scripts/build-app.sh release
+./scripts/build-app.sh debug
 ./scripts/install-local.sh --no-build
 ```
 
