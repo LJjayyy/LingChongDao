@@ -3,6 +3,13 @@ import Combine
 import Foundation
 import IslandCore
 
+struct WorkBuddyReminder: Hashable, Sendable {
+    let sessionKey: String
+    let sessionID: String
+    let revision: UInt64
+    let promptReceivedAt: Date
+}
+
 extension ProviderID {
     var displayName: String { switch self { case .qoder: return "Qoder CN"; case .claude: return "Claude Code"; case .codex: return "Codex"; case .zcode: return "ZCode"; case .dsh: return "DeepSeek Harness"; case .codebuddy: return "CodeBuddy CN"; case .workbuddy: return "WorkBuddy"; case .generic: return "其他工具" } }
 }
@@ -83,12 +90,20 @@ final class AppModel: ObservableObject {
     var openDshSession: (String, String) async throws -> Void = { sessionID, requestID in
         try await DshNavigationClient().open(sessionID: sessionID, requestID: requestID)
     }
+    var sourceAttentionDate: () -> Date = { Date() }
     var openWorkbench: (() -> Void)?
     var onProviderEvent: ((ProviderID, Date) -> Void)?
     private var reducer = SessionReducer()
     private var qoderPermissionCorrelator = QoderPermissionCorrelator()
     private var previewReducer = SessionReducer()
     private var eventRevisions: [String: UInt64] = [:]
+    private var dshEventReceivedAt: [String: Date] = [:]
+    private struct WorkBuddyTurn {
+        let id: String
+        let promptReceivedAt: Date
+        var resultRevision: UInt64? = nil
+    }
+    private var workBuddyTurns: [String: WorkBuddyTurn] = [:]
     private var navigationToken = UUID()
     private var dshNavigationTask: Task<Void, Never>?
     private var server: IslandSocketServer?
@@ -166,6 +181,18 @@ final class AppModel: ObservableObject {
             if envelope.provider == .claude, let permissionID = envelope.raw["lingchongdao_permission_id"]?.stringValue,
                permissionID != envelope.requestID { return .fallback("Claude 审批通道身份不匹配") }
             var event = try HookNormalizer.normalize(rawJSON: try envelope.rawJSON, provider: envelope.provider, sourceApplication: envelope.sourceApplication)
+            if event.kind == .sessionViewed {
+                let now = sourceAttentionDate()
+                // Source timestamps can be backdated or identical. Fence views
+                // against the receipt of the latest accepted activity as well.
+                guard settings.autoClearFinishedOnAppFocus,
+                      let since = event.viewedSince,
+                      event.timestamp <= now,
+                      now.timeIntervalSince(since) <= 60,
+                      let receivedAt = dshEventReceivedAt[event.sessionKey], receivedAt < since else { return .acknowledged }
+                if reducer.apply(event) { publish() }
+                return .acknowledged
+            }
             if event.source == .codex, event.kind == .approvalRequested,
                CodexApprovalContext.reviewer(for: envelope.raw) != .user {
                 // Returning no decision lets Codex reach auto-review without
@@ -189,9 +216,11 @@ final class AppModel: ObservableObject {
             // Only accepted events may replace a pending interaction. Delayed and
             // duplicate events must not interrupt the current hook continuation.
             guard reducer.apply(event) else { return .fallback("旧事件或重复事件已忽略") }
+            if event.source == .dsh { dshEventReceivedAt[event.sessionKey] = sourceAttentionDate() }
             if event.source == .qoder { qoderPermissionCorrelator = correlation }
             reducer.expireRequests(at: Date())
             eventRevisions[event.sessionKey, default: 0] &+= 1
+            recordWorkBuddyTurn(event, isPrompt: envelope.raw["hook_event_name"]?.stringValue == "UserPromptSubmit")
             let pendingIDs = reducer.pendingApprovalIDs(sessionKey: event.sessionKey)
             let obsolete = waiters.values.filter {
                 $0.sessionKey == event.sessionKey && !pendingIDs.contains($0.requestID)
@@ -421,14 +450,67 @@ final class AppModel: ObservableObject {
         if changed { publish() }
     }
 
+    func workBuddyFinishedReminders() -> [WorkBuddyReminder] {
+        guard settings.autoClearFinishedOnAppFocus else { return [] }
+        let local = reducer.sessionsByID.values.filter {
+            $0.source == .workbuddy && $0.sourceApplication == .workbuddyDesktop && $0.host == "localhost"
+        }
+        let byConversation = Dictionary(grouping: local, by: \.sessionID)
+        return byConversation.values.compactMap { matches -> WorkBuddyReminder? in
+            guard matches.count == 1, let session = matches.first, isFinishedReminder(session),
+                  session.sessionID.utf8.count == 36, UUID(uuidString: session.sessionID) != nil,
+                  let turn = workBuddyTurns[session.id], turn.id == session.turnID,
+                  let revision = turn.resultRevision else { return nil }
+            return WorkBuddyReminder(sessionKey: session.id, sessionID: session.sessionID,
+                                     revision: revision, promptReceivedAt: turn.promptReceivedAt)
+        }
+    }
+
+    private func recordWorkBuddyTurn(_ event: NormalizedHookEvent, isPrompt: Bool) {
+        guard event.source == .workbuddy, event.sourceApplication == .workbuddyDesktop,
+              event.host == "localhost", !event.isSubagent else { return }
+        switch event.kind {
+        case .started:
+            workBuddyTurns[event.sessionKey] = isPrompt ? event.turnID.map {
+                WorkBuddyTurn(id: $0, promptReceivedAt: sourceAttentionDate())
+            } : nil
+        case .turnStopped, .completed, .failed, .interrupted:
+            guard var turn = workBuddyTurns[event.sessionKey] else { return }
+            turn.resultRevision = turn.id == event.turnID ? eventRevisions[event.sessionKey] : nil
+            workBuddyTurns[event.sessionKey] = turn
+        default:
+            // SessionEnd and resume can carry the same result through unchanged.
+            break
+        }
+    }
+
+    @discardableResult
+    func acknowledgeWorkBuddyReminders(_ reminders: [WorkBuddyReminder]) -> Set<String> {
+        guard !reminders.isEmpty else { return [] }
+        // Revalidate after the database read. A new turn, replacement result,
+        // or settings change can happen during the query.
+        let current = Set(workBuddyFinishedReminders())
+        var changed: Set<String> = []
+        for reminder in reminders where current.contains(reminder) {
+            reducer.markRead(sessionKey: reminder.sessionKey)
+            changed.insert(reminder.sessionKey)
+        }
+        if !changed.isEmpty { publish() }
+        return changed
+    }
+
     private func canAcknowledge(_ session: IslandSession, in bundleIdentifier: String) -> Bool {
-        // DSH has precise, acknowledged navigation. Application activation alone
-        // says nothing about which of its concurrent conversations was viewed.
-        guard session.source != .dsh, session.host == "localhost", session.unread,
-              session.approval == nil, session.question == nil,
+        // Application activation cannot identify which DSH or WorkBuddy
+        // conversation was viewed.
+        guard session.source != .dsh, session.source != .workbuddy, isFinishedReminder(session),
               let application = session.sourceApplication,
               application.provider == session.source,
               application.bundleIdentifier == bundleIdentifier else { return false }
+        return true
+    }
+
+    private func isFinishedReminder(_ session: IslandSession) -> Bool {
+        guard session.host == "localhost", session.unread, session.approval == nil, session.question == nil else { return false }
         switch session.phase {
         case .idle, .completed, .failed, .interrupted: return true
         case .running, .waitingApproval, .waitingQuestion: return false

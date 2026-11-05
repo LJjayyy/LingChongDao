@@ -13,7 +13,8 @@ else
 fi
 swiftc -parse-as-library -swift-version 5 -I "$binary_dir" -I "$binary_dir/Modules" \
   Sources/LingChongDao/Models/AppSettings.swift Sources/LingChongDao/Models/AppModel.swift \
-  Sources/LingChongDao/Models/SourceAttentionMonitor.swift \
+  Sources/LingChongDao/Models/SourceAttentionMonitor.swift Sources/LingChongDao/Models/WorkBuddyReadMonitor.swift \
+  Sources/LingChongDao/Models/WorkBuddyReadState.swift \
   Tests/SourceAttentionVerification/SourceAttentionVerification.swift \
-  "${core_link[@]}" -o "$binary_dir/lingchongdao-verify-source-attention"
+  "${core_link[@]}" -lsqlite3 -o "$binary_dir/lingchongdao-verify-source-attention"
 "$binary_dir/lingchongdao-verify-source-attention"

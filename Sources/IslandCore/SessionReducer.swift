@@ -151,6 +151,21 @@ public struct SessionReducer: Sendable {
     }
 
     @discardableResult public mutating func apply(_ event: NormalizedHookEvent) -> Bool {
+        if event.kind == .sessionViewed {
+            // A view is an acknowledgement, not activity: never create a
+            // session or replace its result, ordering metadata or live requests.
+            guard event.source == .dsh, event.sourceApplication == .dshDesktop,
+                  event.host == "localhost", !event.isSubagent,
+                  let since = event.viewedSince,
+                  event.timestamp.timeIntervalSince(since) >= 1,
+                  let session = sessionsByID[event.sessionKey],
+                  session.sourceApplication == .dshDesktop, session.unread,
+                  session.updatedAt < since,
+                  session.approval == nil, session.question == nil,
+                  [.idle, .completed, .failed, .interrupted].contains(session.phase) else { return false }
+            markRead(sessionKey: event.sessionKey)
+            return true
+        }
         let uniqueID = event.sessionKey + ":" + event.eventID
         guard !seenEvents.contains(uniqueID) else { return false }
         seenEvents.insert(uniqueID); eventOrder.append(uniqueID)
@@ -234,7 +249,7 @@ public struct SessionReducer: Sendable {
             // Permission telemetry cannot create attention, resolve a real
             // interaction, or resurrect work that already reached a terminal state.
             break
-        case .sessionResumed:
+        case .sessionResumed, .sessionViewed:
             // Reopening a finished transcript (source == "resume") is browsing, not
             // work; real activity re-surfaces the session via UserPromptSubmit and
             // tool events, which still arrive as .started/.activity.

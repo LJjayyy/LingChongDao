@@ -270,7 +270,7 @@ struct ScreenSettingsView: View {
                 settingToggle("显示灵宠岛", detail: "在屏幕顶部查看会话进展、回答问题和处理权限请求。", value: $settings.enabled)
                 settingToggle("空闲时显示", detail: "没有会话活动时，显示默认灵宠老板鼠。点击可打开工作台。", value: $settings.idleVisible)
                 settingToggle("在其他显示器上显示", detail: "连接多个显示器时，在各屏幕顶部同步显示灵宠岛。", value: $settings.additionalDisplays)
-                settingToggle("回到应用后收起结束提示", detail: "来源应用在前台停留 1 秒后，收起已有的结束提示。DeepSeek Harness 需确认进入对应会话后才收起；运行中、待回答和权限请求仍保留。", value: $settings.autoClearFinishedOnAppFocus)
+                settingToggle("回到应用后收起结束提示", detail: "在支持的来源应用停留 1 秒后收起结束提示。DeepSeek Harness 和受支持的 WorkBuddy 版本按会话同步。", value: $settings.autoClearFinishedOnAppFocus)
                 settingToggle("需要处理时自动展开", detail: "来源任务出现待批准、待回答、本轮结束、完成、失败或中断等需要你处理的状态时，顶部岛自动下拉提示，不需要把鼠标移上去；无操作 8 秒后自动收起，鼠标停在岛上时延后收起。", value: $settings.autoRevealOnFinish)
                 settingToggle("触觉反馈", detail: "通过 Force Touch 触控板提供交互反馈，其他设备暂不支持。", value: $settings.haptics)
                 VStack(alignment: .leading, spacing: 16) {

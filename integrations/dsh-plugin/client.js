@@ -4,6 +4,7 @@ window.__ModuleLoader__.load({
   id: 'lingchongdao-dsh-hooks',
   factory: () => {
     const route = '/api/lingchongdao/navigation'
+    const attentionRoute = '/api/lingchongdao/attention'
     const inject = ['uiWorkspace', 'sessions', 'layout']
     function apply(ctx) {
       const lifetime = new AbortController()
@@ -19,6 +20,59 @@ window.__ModuleLoader__.load({
         signal.addEventListener('abort', abort, { once: true })
         if (signal.aborted) abort()
       })
+      let visit
+      function resetVisit() {
+        visit?.controller.abort()
+        visit = undefined
+      }
+      function viewedSession() {
+        try {
+          if (document.visibilityState !== 'visible' || !document.hasFocus()
+            || layout.panelInfo?.getSnapshot?.().activePanelId !== null) return
+          const rows = sessions.list.getSnapshot().byId
+          const selected = Object.keys(rows).filter(id => (rows[id]?.retainedBy?.mainView || 0) > 0)
+          if (selected.length !== 1) return
+          const id = selected[0]
+          if (sessions.binding(id)?.session.getSnapshot().openState === 'open') return id
+        } catch { /* An incomplete client snapshot cannot acknowledge a view. */ }
+      }
+      async function reportVisit(current) {
+        // Recheck immediately before sending; a timer firing is not proof that
+        // the same conversation is still visible and focused.
+        if (visit !== current || current.controller.signal.aborted || viewedSession() !== current.sessionId) return
+        current.reporting = true
+        const request = new AbortController()
+        const abort = () => request.abort()
+        current.controller.signal.addEventListener('abort', abort, { once: true })
+        const timeout = setTimeout(abort, 3000)
+        try {
+          const response = await fetch(attentionRoute, { method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ version: 1, sessionId: current.sessionId, viewedSince: current.since / 1000 }),
+            signal: request.signal, credentials: 'same-origin' })
+          if (!response.ok) throw new Error('attention-route-unavailable')
+        } catch { /* A failed delivery gets another full dwell before retrying. */ }
+        finally {
+          clearTimeout(timeout)
+          current.controller.signal.removeEventListener('abort', abort)
+          if (visit === current && !current.controller.signal.aborted) {
+            // Renew even while remaining on the same conversation: completion
+            // may arrive during this visit, or the island may have restarted.
+            current.since = Date.now()
+            current.reporting = false
+          }
+        }
+      }
+      async function observeViews() {
+        while (!lifetime.signal.aborted) {
+          const sessionId = viewedSession()
+          if (visit?.sessionId !== sessionId) {
+            resetVisit()
+            if (sessionId) visit = { sessionId, since: Date.now(), controller: new AbortController(), reporting: false }
+          }
+          if (visit && !visit.reporting && Date.now() - visit.since >= 1000) void reportVisit(visit)
+          await sleep(100, lifetime.signal).catch(() => {})
+        }
+      }
       async function deliver(command, signal) {
         let status = 'failed'
         try {
@@ -78,7 +132,14 @@ window.__ModuleLoader__.load({
       }
       ctx.effect(() => {
         void poll()
-        return () => { lifetime.abort(); navigation?.abort() }
+        void observeViews()
+        window.addEventListener('blur', resetVisit)
+        document.addEventListener('visibilitychange', resetVisit)
+        return () => {
+          lifetime.abort(); navigation?.abort(); resetVisit()
+          window.removeEventListener('blur', resetVisit)
+          document.removeEventListener('visibilitychange', resetVisit)
+        }
       }, 'lingchongdao-hooks: navigation client')
     }
     return { inject, apply }

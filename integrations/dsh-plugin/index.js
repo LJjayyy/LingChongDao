@@ -53,7 +53,6 @@ export const inject = []
 const HELPER_KILL_MS = 1500
 
 export function apply(ctx, config) {
-  ctx.inject?.(['connection'], navigationCtx => installNavigation(navigationCtx, config))
   // The bundle mounts this row without config; the stable install locations are
   // derived from the home directory so a profile needs no per-install setup.
   const home = typeof process.env.HOME === 'string' ? process.env.HOME : ''
@@ -115,14 +114,14 @@ export function apply(ctx, config) {
 
   /** Fire-and-forget: the island is an observer, never part of the decision path. */
   function send(payload) {
-    if (!payload.session_id) return
+    if (!payload.session_id) return false
     let child
     try {
       child = spawn(helperPath, ['--provider', 'dsh', '--socket', socketPath, '--timeout', '2'],
                     { stdio: ['pipe', 'ignore', 'ignore'] })
     } catch (error) {
       ctx.logger?.warn?.(`lingchongdao-hooks: cannot start helper: ${String(error)}`)
-      return
+      return false
     }
     running.add(child)
     const timer = setTimeout(() => {
@@ -137,7 +136,13 @@ export function apply(ctx, config) {
     child.stdin?.on('error', () => {})
     try { child.stdin?.end(JSON.stringify(payload) + '\n') } catch {}
     child.unref?.()
+    return true
   }
+
+  ctx.inject?.(['connection'], navigationCtx => installNavigation(navigationCtx, config, view => send({
+    hook_event_name: 'SessionViewed', session_id: view.sessionId,
+    viewed_since: view.viewedSince, timestamp: Date.now() / 1000,
+  })))
 
   ctx.on('agent/session-start', ({ agent, source } = {}) => {
     if (!announceOnce(agent)) return

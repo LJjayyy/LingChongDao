@@ -1,8 +1,8 @@
 # 安全问题报告
 
-安全问题使用 GitHub 私密漏洞报告渠道：在本仓库的 **Security → Advisories → Report a vulnerability** 提交。普通使用问题和功能建议可使用公开 Issues；漏洞细节、令牌、私人聊天和完整来源配置请勿发布在公开 Issue 中。
+安全问题请私下报告。若本仓库显示 **Security → Advisories → Report a vulnerability**，可通过此入口提交。入口未显示时，可通过维护者 GitHub 个人主页公开提供的联系渠道询问私密接收方式。首次联系仅说明希望报告安全问题。 [维护者 GitHub 主页](https://github.com/LJjayyy)
 
-仓库目前仅作私有预览，尚未公开发布。维护者公开仓库前需要启用 private vulnerability reporting；只有该设置启用后，上述私密入口才可用。入口未显示时，可通过维护者 [GitHub 个人主页](https://github.com/LJjayyy)公开提供的联系渠道询问私密接收方式，首次联系仅说明希望报告安全问题，不附敏感细节。
+普通使用问题和功能建议可使用公开 Issues。漏洞细节、令牌、私人聊天和完整来源配置请勿发布在公开 Issue 中。
 
 报告请包含应用版本、macOS 与处理器、受影响的来源应用及版本、最小复现步骤、预期和实际行为。优先使用合成任务与临时目录；涉及权限时说明是否真的执行了操作，勿在复现中批准危险命令。
 

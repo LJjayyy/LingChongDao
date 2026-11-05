@@ -49,6 +49,9 @@ public enum HookNormalizer {
             // source == "resume" is the user reopening a finished task — browsing,
             // not work starting — so it must not resurrect an ended session.
             kind = text("source") == "resume" ? .sessionResumed : .started
+        case "SessionViewed":
+            guard provider == .dsh else { throw HookNormalizationError.unsupportedEvent(name) }
+            kind = .sessionViewed
         case "UserPromptSubmit", "TurnStarted", "turn/started", "turn.started": kind = .started
         case "PermissionRequest":
             let summary = text("permission_description", "description") ?? input["description"]?.stringValue ?? "\(tool.isEmpty ? "操作" : tool) 需要权限"
@@ -218,6 +221,7 @@ public enum HookNormalizer {
             ?? (provider == .workbuddy ? text("generation_id") : nil)
         var event = NormalizedHookEvent(eventID: eventID, source: provider, host: text("host", "host_id") ?? "localhost", sessionID: sessionID, threadID: threadID, turnID: turnID, interactionID: kind == .activity && !carriesToolActivityID ? nil : stableInteraction, timestamp: time, kind: kind, title: eventTitle, agentName: text("agent_name", "agentName"), cwd: normalizedCWD, detail: String(detail.prefix(2000)), approval: approval, question: question, isSubagent: isSubagent, sourceApplication: sourceApplication)
         event.answeredQuestionItemIDs = answeredQuestionItemIDs
+        if kind == .sessionViewed { event.viewedSince = parseDate(object["viewed_since"]) }
         if provider == .workbuddy, !tool.isEmpty { event.toolName = tool }
         return event
     }

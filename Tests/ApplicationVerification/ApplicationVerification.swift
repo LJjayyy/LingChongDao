@@ -220,9 +220,12 @@ struct ApplicationVerification {
         try check(!model.visibleSessions.contains { $0.source == .codebuddy } && model.visibleSessions.filter { $0.source == .workbuddy }.count == 2, "Buddy source visibility switches are independent")
         settings.showCodeBuddy = true
         for origin in origins { _ = await model.handle(envelope("Stop", origin: origin)) }
-        let snapshot = model.captureFinishedReminders(for: SourceApplicationID.workbuddyDesktop.bundleIdentifier!)
-        model.acknowledgeFinishedReminders(snapshot)
-        try check(model.sessions.first { $0.sourceApplication == .workbuddyDesktop }?.unread == false && model.sessions.filter { $0.sourceApplication != .workbuddyDesktop }.allSatisfy(\.unread), "Returning to WorkBuddy never consumes CodeBuddy or WorkBuddy AI reminders")
+        for origin in [SourceApplicationID.workbuddyDesktop, .workbuddyAI] {
+            let snapshot = model.captureFinishedReminders(for: origin.bundleIdentifier!)
+            model.acknowledgeFinishedReminders(snapshot)
+            try check(snapshot.isEmpty && model.sessions.allSatisfy(\.unread),
+                      "App focus preserves unread results for " + origin.rawValue)
+        }
         for origin in [SourceApplicationID.codebuddyUnknown, .workbuddyUnknown] {
             _ = await model.handle(envelope("SessionStart", origin: origin))
             let session = model.sessions.first { $0.sourceApplication == origin }!
@@ -236,7 +239,7 @@ struct ApplicationVerification {
             let session = model.sessions.first { $0.sourceApplication == origin }!
             try check(reply.disposition == .acknowledged && session.approval?.canApprove == false && session.approval?.canDeny == false, "Buddy permissions remain status-only without blocking source approval: " + origin.rawValue)
         }
-        print("13 Buddy application checks passed. All application opens were intercepted.")
+        print("14 Buddy application checks passed. All application opens were intercepted.")
     }
     @MainActor static func verifyConversationNavigation() async throws {
         let suite = "local.lingchongdao.navigation." + UUID().uuidString

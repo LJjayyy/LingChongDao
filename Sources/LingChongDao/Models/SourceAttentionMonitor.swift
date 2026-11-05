@@ -2,15 +2,14 @@ import AppKit
 import Combine
 import Foundation
 
-/// A short foreground visit acknowledges reminders that existed on entry and
-/// those that arrive while the visit continues. No Accessibility access,
-/// chat-history reads, or source-side writes are needed.
+/// Coordinates application visits and WorkBuddy's conversation-level read state.
 @MainActor
 final class SourceAttentionMonitor {
     private let model: AppModel
     private let notificationCenter: NotificationCenter
     private let frontmostBundleIdentifier: () -> String?
     private let confirmationDelay: UInt64
+    private let workBuddyReadMonitor: WorkBuddyReadMonitor?
     private var observers: [NSObjectProtocol] = []
     private var pending: Task<Void, Never>?
     private var settingsObservation: AnyCancellable?
@@ -18,22 +17,28 @@ final class SourceAttentionMonitor {
     private var generation = UUID()
     private var pendingBundleIdentifier: String?
     private var pendingRevisions: [String: UInt64]?
+    private var workBuddySuspensions: Set<Notification.Name> = []
     private var isRunning = false
 
     init(model: AppModel, notificationCenter: NotificationCenter? = nil,
          confirmationDelay: UInt64 = 1_000_000_000,
-         frontmostBundleIdentifier: @escaping () -> String? = { NSWorkspace.shared.frontmostApplication?.bundleIdentifier }) {
+         frontmostBundleIdentifier: @escaping () -> String? = { NSWorkspace.shared.frontmostApplication?.bundleIdentifier },
+         workBuddyReadMonitor: WorkBuddyReadMonitor? = nil) {
         self.model = model
         self.notificationCenter = notificationCenter ?? NSWorkspace.shared.notificationCenter
         self.confirmationDelay = confirmationDelay
         self.frontmostBundleIdentifier = frontmostBundleIdentifier
+        self.workBuddyReadMonitor = workBuddyReadMonitor
     }
 
     func start() {
         guard !isRunning else { return }
         isRunning = true
         settingsObservation = model.settings.$autoClearFinishedOnAppFocus.sink { [weak self] enabled in
-            if !enabled { self?.cancelPending() }
+            if !enabled {
+                self?.cancelPending()
+                self?.workBuddyReadMonitor?.reset()
+            }
         }
         // A reminder that arrives while its source app is already frontmost has
         // no activation event of its own; it needs the same dwell confirmation.
@@ -50,9 +55,22 @@ final class SourceAttentionMonitor {
             let bundleIdentifier = (notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier
             Task { @MainActor [weak self] in self?.applicationDeactivated(bundleIdentifier: bundleIdentifier) }
         })
-        for name in [NSWorkspace.sessionDidResignActiveNotification, NSWorkspace.willSleepNotification] {
-            observers.append(notificationCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                Task { @MainActor [weak self] in self?.cancelPending() }
+        for (suspend, resume) in [(NSWorkspace.sessionDidResignActiveNotification, NSWorkspace.sessionDidBecomeActiveNotification),
+                                  (NSWorkspace.willSleepNotification, NSWorkspace.didWakeNotification)] {
+            observers.append(notificationCenter.addObserver(forName: suspend, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self, self.isRunning else { return }
+                    self.cancelPending()
+                    self.workBuddySuspensions.insert(suspend)
+                    self.workBuddyReadMonitor?.reset()
+                }
+            })
+            observers.append(notificationCenter.addObserver(forName: resume, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self, self.isRunning else { return }
+                    self.workBuddySuspensions.remove(suspend)
+                    self.refreshWorkBuddyReadState()
+                }
             })
         }
     }
@@ -62,6 +80,8 @@ final class SourceAttentionMonitor {
         settingsObservation?.cancel(); settingsObservation = nil
         sessionsObservation?.cancel(); sessionsObservation = nil
         cancelPending()
+        workBuddyReadMonitor?.reset()
+        workBuddySuspensions.removeAll()
         observers.forEach { notificationCenter.removeObserver($0) }
         observers.removeAll()
     }
@@ -69,6 +89,7 @@ final class SourceAttentionMonitor {
     func applicationActivated(bundleIdentifier: String?) {
         cancelPending()
         guard isRunning, let bundleIdentifier else { return }
+        refreshWorkBuddyReadState()
         let snapshot = model.captureFinishedReminders(for: bundleIdentifier)
         guard !snapshot.isEmpty else { return }
         scheduleAcknowledgement(snapshot, bundleIdentifier: bundleIdentifier)
@@ -78,11 +99,17 @@ final class SourceAttentionMonitor {
     /// reminder lands while the user never left the source application.
     func finishedRemindersChanged() {
         guard isRunning, model.settings.autoClearFinishedOnAppFocus else { return }
+        refreshWorkBuddyReadState()
         guard let bundleIdentifier = frontmostBundleIdentifier() else { return }
         if let pendingBundle = pendingBundleIdentifier, pendingBundle != bundleIdentifier { return }
         let snapshot = model.captureFinishedReminders(for: bundleIdentifier)
         guard !snapshot.isEmpty, snapshot.revisions != pendingRevisions else { return }
         scheduleAcknowledgement(snapshot, bundleIdentifier: bundleIdentifier)
+    }
+
+    private func refreshWorkBuddyReadState() {
+        guard workBuddySuspensions.isEmpty, model.settings.autoClearFinishedOnAppFocus else { return }
+        workBuddyReadMonitor?.refresh()
     }
 
     func applicationDeactivated(bundleIdentifier: String?) {

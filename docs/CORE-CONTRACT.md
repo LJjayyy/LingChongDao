@@ -30,7 +30,9 @@ The normalizer alone is not the final authorization boundary. In raw Codex event
 - `NormalizedHookEvent` carries event/source/origin/session identity, optional thread/turn/interaction IDs, timestamp, kind and optional title/project/detail/approval/question. Subagent terminal hooks do not finish the main task.
 - `NormalizedHookEvent.toolName` is optional and preserves the actual WorkBuddy tool name for read-only notification correlation. Old JSON without it still decodes. For WorkBuddy only, `generation_id` supplies a fallback turn ID after explicit `turn_id` aliases and `turn.id`; other providers retain their own contracts.
 
-`HookEventKind` contains `started`, `sessionResumed`, `activity`, `permissionObserved`, `permissionPrompted`, `approvalRequested`, `questionRequested`, `turnStopped`, `sessionEnded`, `completed`, `failed`, `interrupted`, `approvalResolved` and `questionResolved`.
+`HookEventKind` contains `started`, `sessionResumed`, `sessionViewed`, `activity`, `permissionObserved`, `permissionPrompted`, `approvalRequested`, `questionRequested`, `turnStopped`, `sessionEnded`, `completed`, `failed`, `interrupted`, `approvalResolved` and `questionResolved`.
+
+DSH-only `SessionViewed` normalizes to `sessionViewed`, with optional `viewedSince` from `viewed_since`. It acknowledges only an existing local, verified DSH conversation whose finished result predates a continuous visit of at least one second. It creates no session and leaves result metadata, timestamps and pending interactions untouched. AppModel also checks the sync preference, report freshness and latest activity receipt time before applying it; view reports do not increment activity revisions or provider activity timestamps.
 
 ## Reducer and UI attention
 

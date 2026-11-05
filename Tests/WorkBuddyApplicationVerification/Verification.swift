@@ -65,10 +65,8 @@ struct WorkBuddyApplicationVerification {
         _ = await model.handle(envelope("SessionEnd"))
         try check(model.visibleSessions.first?.unread == true && model.visibleSessions.first?.detail.contains("the document is ready") == true,
                   "SessionEnd preserves unread result and summary")
-        let snapshot = model.captureFinishedReminders(for: bundle)
         _ = await model.handle(envelope("UserPromptSubmit", turn: "two", extra: ["prompt": .string("Follow-up")]))
-        model.acknowledgeFinishedReminders(snapshot)
-        try check(model.visibleSessions.first?.phase == .running && model.visibleSessions.first?.question == nil, "follow-up clears old interactions and survives old acknowledgement")
+        try check(model.visibleSessions.first?.phase == .running && model.visibleSessions.first?.question == nil, "follow-up starts a new turn after the completed result")
         _ = await model.handle(envelope("Stop", turn: "one", extra: ["last_assistant_message": .string("stale result")]))
         try check(model.visibleSessions.first?.phase == .running && model.visibleSessions.first?.detail != "stale result", "old turn cannot replace new work")
         _ = await model.handle(envelope("Stop", turn: "two", extra: ["last_assistant_message": .string("Second reply")]))

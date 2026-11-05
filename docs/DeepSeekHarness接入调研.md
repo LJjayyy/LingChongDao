@@ -1,6 +1,6 @@
 # DeepSeek Harness 接入调研
 
-结论：DeepSeek Harness（dsh）**支持接入**，灵宠岛已把插件做成 **dsh 原生组合包（bundle）**：装好后会出现在 DeepSeek Harness 的「插件 → 已安装插件」里，可自行开关/移除。不依赖 Harness 的实验性 `dsh-hooks-claude-code` / `dsh-hook-protocol` 包，安装完全离线。能力为「会话开始 + 任务/工具活动 + 本轮结束 + 点击提醒定位对应会话」，**不含权限请求回传**。会话定位由灵宠岛插件通过官方客户端扩展实现，不是 DSH 现成的外部深链。
+结论：DeepSeek Harness（dsh）**支持接入**，灵宠岛已把插件做成 **dsh 原生组合包（bundle）**：装好后会出现在 DeepSeek Harness 的「插件 → 已安装插件」里，可自行开关/移除。不依赖 Harness 的实验性 `dsh-hooks-claude-code` / `dsh-hook-protocol` 包，安装完全离线。能力为「会话开始 + 任务/工具活动 + 本轮结束 + 点击提醒定位对应会话 + 手动查看会话后同步收起提醒」，**不含权限请求回传**。会话定位由灵宠岛插件通过官方客户端扩展实现，不是 DSH 现成的外部深链。
 
 ## 证据来源
 
@@ -53,7 +53,7 @@
 - 客户端调用官方 [`ctx.uiWorkspace.openSession`](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/client/ui-workspace/src/client/navigation.ts)。回执需目标独占 `mainView`、历史 `openState === 'open'`、Conversation 主面板，60 ms 后仍满足。安装包实现已独立复核这些字段的语义。
 - 官方 rc.5 隔离 Web runtime 中加载生产插件，浏览器核实 A/B 页面标题分别对应目标；再用生产 Swift `DshNavigationClient` 发送 A/B，各收到匹配 `opened`。GUI 使用合成空白会话，不是用户真实的已完成模型任务；其身份由页面标题与官方选中状态确认，不能将截图说成非空聊天历史验收。真实 Desktop 的前台唤起仍由既有应用打开接口处理。
 - 生产 AppModel 的合成双结束任务验证覆盖仅清目标、失败保留、新结果保护、连续点击，以及跨来源点击后旧传输收束。最终应用检查 85/85、来源关注检查 45/45、Swift 实际 Unix socket 检查 10/10、插件检查 10/10 通过；核心独立验证 43/43 通过。独立 Review 已复核回修，未发现阻塞问题。此环境缺少 XCTest 模块，相关 XCTest 文件保留给完整 Xcode 环境；本轮实际执行的是独立验证程序。
-- 安装器将 `navigation.js` 和 `client.js` 纳入完整性检查、复制与更新摘要。插件版本为 `0.3.0`；旧版只有活动上报的插件需更新并重启 DSH。应用已打包，并核对插件目录与导出 ZIP 的内容一致。
+- 安装器将 `navigation.js` 和 `client.js` 纳入完整性检查、复制与更新摘要。当前插件版本为 `0.4.0`；旧版需更新并重启 DSH。新增的手动查看同步沿用已确认的主视图、加载和面板快照，额外要求窗口可见并连续获得焦点约 1 秒；仅上报会话身份和停留起点，不读取聊天内容。2026-11-05 已完成本地 Debug 打包及签名验证，并核对内置插件、导出 ZIP 与源码一致；手动查看的合成回归通过，真实桌面焦点行为尚待实机验收。
 
 ## 当前边界
 

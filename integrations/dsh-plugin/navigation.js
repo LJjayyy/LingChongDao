@@ -5,12 +5,14 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 
 export const NAVIGATION_ROUTE = '/api/lingchongdao/navigation'
+export const ATTENTION_ROUTE = '/api/lingchongdao/attention'
 const DEADLINE_MS = 4000
 const MAX_BYTES = 8192
+const VIEW_INTERVAL_MS = 250
 
 /** Local requests use a private Unix socket; browser delivery uses DSH's
  * authenticated, owner-only exact Fetch-route registry. No Host token escapes. */
-export function installNavigation(ctx, config = {}) {
+export function installNavigation(ctx, config = {}, onViewed) {
   const connection = ctx.get?.('connection')
   if (typeof connection?.fetch?.register !== 'function') {
     ctx.logger?.warn?.('lingchongdao-hooks: this Harness version has no navigation Fetch-route capability')
@@ -22,6 +24,7 @@ export function installNavigation(ctx, config = {}) {
   let disposed = false
   let pending
   let sequence = 0
+  let nextViewTime = 0
   const epoch = randomUUID()
   const waiters = new Set()
   const clients = new Set()
@@ -67,6 +70,36 @@ export function installNavigation(ctx, config = {}) {
   }
   function wake() { for (const resolve of [...waiters]) resolve() }
   function json(value, status = 200) { return new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } }) }
+
+  connection.fetch.register({
+    path: ATTENTION_ROUTE, methods: ['POST'], requestBody: 'buffered',
+    async fetch(request) {
+      if (disposed || request.signal.aborted) return json({ error: 'unavailable' }, 503)
+      if (request.method !== 'POST') return json({ error: 'method' }, 405)
+      if (!/^application\/json(?:\s*;|$)/i.test(request.headers.get('content-type') || '')) return json({ error: 'content-type' }, 415)
+      if (Number(request.headers.get('content-length') || 0) > MAX_BYTES) return json({ error: 'too-large' }, 413)
+      const body = await request.text()
+      if (Buffer.byteLength(body) > MAX_BYTES) return json({ error: 'too-large' }, 413)
+      let viewed
+      try { viewed = JSON.parse(body) } catch { return json({ error: 'invalid' }, 400) }
+      const now = Date.now() / 1000
+      if (viewed?.version !== 1 || !validSessionID(viewed.sessionId)
+        || typeof viewed.viewedSince !== 'number' || !Number.isFinite(viewed.viewedSince)
+        || viewed.viewedSince <= 0 || now - viewed.viewedSince < 1 || now - viewed.viewedSince > 60) {
+        return json({ error: 'invalid' }, 400)
+      }
+      if (disposed || request.signal.aborted || typeof onViewed !== 'function') return json({ error: 'unavailable' }, 503)
+      // Reserve a slot before forwarding so replayed requests cannot spawn a burst of helpers.
+      const tick = performance.now()
+      if (tick < nextViewTime) return json({ error: 'busy' }, 429)
+      nextViewTime = tick + VIEW_INTERVAL_MS
+      try {
+        const delivered = await onViewed({ version: 1, sessionId: viewed.sessionId, viewedSince: viewed.viewedSince })
+        if (delivered === false || disposed || request.signal.aborted) return json({ error: 'unavailable' }, 503)
+        return json({ ok: true })
+      } catch { return json({ error: 'unavailable' }, 503) }
+    },
+  })
 
   connection.fetch.register({
     path: NAVIGATION_ROUTE, methods: ['GET', 'POST'], requestBody: 'buffered',
@@ -145,6 +178,10 @@ export function installNavigation(ctx, config = {}) {
 export function validRequest(value) {
   return value?.version === 1 && typeof value.requestId === 'string'
     && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.requestId)
-    && typeof value.sessionId === 'string' && value.sessionId.length > 0 && value.sessionId.length <= 1024
-    && !/[\u0000-\u001f\u007f]/.test(value.sessionId)
+    && validSessionID(value.sessionId)
+}
+
+function validSessionID(value) {
+  return typeof value === 'string' && value.length > 0 && value.length <= 1024
+    && !/[\u0000-\u001f\u007f]/.test(value)
 }

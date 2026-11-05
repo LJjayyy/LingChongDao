@@ -21,7 +21,7 @@ let package = Package(
         .target(name: "IslandCore"),
         .target(name: "IslandPets", dependencies: ["IslandCore"], linkerSettings: [.linkedLibrary("sqlite3")]),
         .target(name: "IslandConnections", dependencies: ["IslandCore"], path: "Sources/LingChongDao/Connections"),
-        .executableTarget(name: "LingChongDao", dependencies: ["IslandCore", "IslandConnections", "IslandPets", .product(name: "Sparkle", package: "Sparkle")], exclude: ["Connections"], linkerSettings: [.linkedFramework("IOKit"), .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])]),
+        .executableTarget(name: "LingChongDao", dependencies: ["IslandCore", "IslandConnections", "IslandPets", .product(name: "Sparkle", package: "Sparkle")], exclude: ["Connections"], linkerSettings: [.linkedFramework("IOKit"), .linkedLibrary("sqlite3"), .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])]),
         .executableTarget(name: "IslandHook", dependencies: ["IslandCore"]),
         .executableTarget(name: "IslandVerification", dependencies: ["IslandCore", "IslandConnections"], path: "Tests/Verification", exclude: ["README.md"]),
         .executableTarget(name: "PetVerification", dependencies: ["IslandPets", "IslandCore"], path: "Tests/PetVerification"),

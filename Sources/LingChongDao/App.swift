@@ -95,7 +95,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         model.openWorkbench = { [weak self] in self?.showWorkbench() }
         model.onProviderEvent = { [weak self] provider, at in self?.connections.recordEvent(provider: provider, at: at) }
         model.startBridge(socketPath: bridgeSocketPath)
-        sourceAttention = SourceAttentionMonitor(model: model)
+        sourceAttention = SourceAttentionMonitor(model: model,
+            workBuddyReadMonitor: isolatedRoot == nil ? WorkBuddyReadMonitor(model: model) : nil)
         sourceAttention?.start()
         if let preview { settings.enabled = true; model.loadPreview(preview) }
         configureMainMenu()

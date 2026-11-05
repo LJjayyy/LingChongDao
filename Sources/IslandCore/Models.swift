@@ -155,7 +155,7 @@ public enum JSONValue: Codable, Equatable, Sendable {
     public var numberValue: Double? { if case .number(let item) = self { return item }; return nil }
 }
 
-public enum HookEventKind: String, Codable, Sendable { case started, sessionResumed, activity, permissionObserved, permissionPrompted, approvalRequested, questionRequested, turnStopped, sessionEnded, completed, failed, interrupted, approvalResolved, questionResolved }
+public enum HookEventKind: String, Codable, Sendable { case started, sessionResumed, sessionViewed, activity, permissionObserved, permissionPrompted, approvalRequested, questionRequested, turnStopped, sessionEnded, completed, failed, interrupted, approvalResolved, questionResolved }
 public struct NormalizedHookEvent: Codable, Equatable, Sendable {
     public var eventID: String
     public var source: ProviderID
@@ -168,6 +168,8 @@ public struct NormalizedHookEvent: Codable, Equatable, Sendable {
     /// Actual source tool name, when supplied; notification bindings stay in approval.
     public var toolName: String?
     public var timestamp: Date
+    /// Start of an uninterrupted foreground visit, reported by the DSH client.
+    public var viewedSince: Date?
     public var kind: HookEventKind
     public var title: String?
     public var agentName: String?
@@ -178,8 +180,9 @@ public struct NormalizedHookEvent: Codable, Equatable, Sendable {
     public var answeredQuestionItemIDs: [String]?
     public var isSubagent: Bool
     public var sessionKey: String { SessionIdentity.key(source: source, host: host, sessionID: sessionID, threadID: threadID, sourceApplication: sourceApplication) }
-    public init(eventID: String = UUID().uuidString, source: ProviderID, host: String = "localhost", sessionID: String, threadID: String? = nil, turnID: String? = nil, interactionID: String? = nil, timestamp: Date = Date(), kind: HookEventKind, title: String? = nil, agentName: String? = nil, cwd: String? = nil, detail: String? = nil, approval: ApprovalRequest? = nil, question: QuestionRequest? = nil, isSubagent: Bool = false, sourceApplication: SourceApplicationID? = nil, toolName: String? = nil) {
+    public init(eventID: String = UUID().uuidString, source: ProviderID, host: String = "localhost", sessionID: String, threadID: String? = nil, turnID: String? = nil, interactionID: String? = nil, timestamp: Date = Date(), kind: HookEventKind, title: String? = nil, agentName: String? = nil, cwd: String? = nil, detail: String? = nil, approval: ApprovalRequest? = nil, question: QuestionRequest? = nil, isSubagent: Bool = false, sourceApplication: SourceApplicationID? = nil, toolName: String? = nil, viewedSince: Date? = nil) {
         self.sourceApplication = sourceApplication?.provider == source ? sourceApplication : nil
+        self.viewedSince = viewedSince
         self.toolName = toolName
         self.eventID = eventID; self.source = source; self.host = host; self.sessionID = sessionID; self.threadID = threadID; self.turnID = turnID; self.interactionID = interactionID; self.timestamp = timestamp; self.kind = kind; self.title = title; self.agentName = agentName; self.cwd = cwd; self.detail = detail; self.approval = approval; self.question = question; self.isSubagent = isSubagent
     }
