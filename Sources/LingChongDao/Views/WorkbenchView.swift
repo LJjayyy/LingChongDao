@@ -8,6 +8,7 @@ struct WorkbenchView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var settings: AppSettings
     @ObservedObject var connections: ConnectionManager
+    let launchAtLogin: LaunchAtLoginController
     @ObservedObject var updates = AppUpdateController.shared
     @ObservedObject private var keepAwake = KeepAwakeController.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -21,7 +22,7 @@ struct WorkbenchView: View {
             Rectangle().fill(BossWorkbenchStyle.border).frame(width: 1)
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    if page != "connections" { bossWelcome }
+                    if page == "tasks" || page == "screen" { bossWelcome }
                     if let error = model.bridgeError {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(error).foregroundStyle(.red).font(.system(size: 13))
@@ -48,8 +49,9 @@ struct WorkbenchView: View {
                     }
                     Group {
                         switch page {
-                        case "settings": ScreenSettingsView(settings: settings)
+                        case "screen": ScreenSettingsView(settings: settings)
                         case "connections": ConnectionsView(manager: connections)
+                        case "settings": UtilitySettingsView(launchAtLogin: launchAtLogin)
                         default: tasks
                         }
                     }
@@ -81,8 +83,9 @@ struct WorkbenchView: View {
                 }
             }.padding(.top, 8).padding(.bottom, 28)
             sideButton("任务总览", symbol: "rectangle.stack", id: "tasks")
-            sideButton("屏幕顶部", symbol: "menubar.rectangle", id: "settings")
+            sideButton("屏幕顶部", symbol: "menubar.rectangle", id: "screen")
             sideButton("连接的应用", symbol: "point.3.connected.trianglepath.dotted", id: "connections")
+            sideButton("设置", symbol: "gearshape", id: "settings")
             Spacer(minLength: 24)
             Rectangle().fill(BossWorkbenchStyle.border).frame(height: 1).padding(.bottom, 8)
             HStack(spacing: 7) {
@@ -262,7 +265,7 @@ struct WorkbenchView: View {
 
 struct ScreenSettingsView: View {
     @ObservedObject var settings: AppSettings
-    @ObservedObject private var keepAwake = KeepAwakeController.shared
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("屏幕顶部").font(.system(size: 22, weight: .semibold)).padding(.bottom, 4)
@@ -286,16 +289,10 @@ struct ScreenSettingsView: View {
                     }
                     HStack(spacing: 12) { preview(notch: true); preview(notch: false) }
                 }.padding(.vertical, 16)
-                dashedDivider
+                SettingsDivider()
                 sliderRow("宽度", value: $settings.widthPercent, range: 100...130)
-                dashedDivider
+                SettingsDivider()
                 sliderRow("高度", value: $settings.heightPercent, range: 75...125)
-            }.padding(.horizontal, 18).bossCard()
-            Text("实用工具").font(.system(size: 13, weight: .medium)).foregroundStyle(BossWorkbenchStyle.muted).padding(.leading, 16).padding(.top, 12)
-            VStack(spacing: 0) {
-                settingToggle("保持唤醒（含合盖）", detail: "开启时申请管理员授权，阻止 Mac 休眠并包含合盖场景。关闭或退出后恢复原电源状态，每次启动默认关闭。开盖解锁仍按 macOS 设置。",
-                              value: Binding(get: { keepAwake.state != .off }, set: { keepAwake.setEnabled($0) }), separator: false)
-                    .disabled(keepAwake.isChanging)
             }.padding(.horizontal, 18).bossCard()
             Text("显示的来源").font(.system(size: 13, weight: .medium)).foregroundStyle(BossWorkbenchStyle.muted).padding(.leading, 16).padding(.top, 12)
             VStack(spacing: 0) {
@@ -308,18 +305,6 @@ struct ScreenSettingsView: View {
                 settingToggle("WorkBuddy", detail: "显示 WorkBuddy 的任务与工具进展。", value: $settings.showWorkBuddy, separator: false)
             }.padding(.horizontal, 18).bossCard()
         }.foregroundStyle(BossWorkbenchStyle.text)
-    }
-    private func settingToggle(_ title: String, detail: String, value: Binding<Bool>, separator: Bool = true) -> some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(.system(size: 13, weight: .medium))
-                    Text(detail).font(.system(size: 12)).foregroundStyle(BossWorkbenchStyle.muted).fixedSize(horizontal: false, vertical: true)
-                }.frame(maxWidth: .infinity, alignment: .leading)
-                Toggle(title, isOn: value).labelsHidden().toggleStyle(SettingsSwitchStyle())
-            }.padding(.vertical, 16)
-            if separator { dashedDivider }
-        }
     }
     private func sliderRow(_ title: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
         HStack {
@@ -347,8 +332,72 @@ struct ScreenSettingsView: View {
             Text(notch ? "内置显示器" : "外接显示器").font(.system(size: 12)).foregroundStyle(BossWorkbenchStyle.muted)
         }.frame(maxWidth: .infinity)
     }
-    private var dashedDivider: some View { Line().stroke(BossWorkbenchStyle.border, style: StrokeStyle(lineWidth: 1, dash: [3, 2])).frame(height: 1) }
-    private struct Line: Shape { func path(in rect: CGRect) -> Path { Path { $0.move(to: CGPoint(x: 0, y: 0)); $0.addLine(to: CGPoint(x: rect.width, y: 0)) } } }
+}
+
+private struct UtilitySettingsView: View {
+    @ObservedObject var launchAtLogin: LaunchAtLoginController
+    @ObservedObject private var keepAwake = KeepAwakeController.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("设置").font(.system(size: 22, weight: .semibold)).padding(.bottom, 4)
+            Text("实用工具").font(.system(size: 13, weight: .medium))
+                .foregroundStyle(BossWorkbenchStyle.muted).padding(.leading, 16)
+            VStack(spacing: 0) {
+                settingToggle("开机自启动", detail: launchAtLoginDetail,
+                              value: Binding(get: { launchAtLogin.isEnabled }, set: { launchAtLogin.setEnabled($0) }), separator: false)
+                    .disabled(!launchAtLogin.isAvailable)
+                if launchAtLogin.errorMessage != nil {
+                    Button("打开登录项") { launchAtLogin.openLoginItems() }
+                        .buttonStyle(BossButtonStyle(kind: .quiet))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.bottom, 12)
+                }
+                SettingsDivider()
+                settingToggle("保持唤醒（含合盖）", detail: "开启时申请管理员授权，阻止 Mac 休眠并包含合盖场景。关闭或退出后恢复原电源状态，每次启动默认关闭。开盖解锁仍按 macOS 设置。",
+                              value: Binding(get: { keepAwake.state != .off }, set: { keepAwake.setEnabled($0) }), separator: false)
+                    .disabled(keepAwake.isChanging)
+            }.padding(.horizontal, 18).bossCard()
+        }
+        .onAppear { launchAtLogin.refresh() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            launchAtLogin.refresh()
+        }
+    }
+
+    private var launchAtLoginDetail: String {
+        guard launchAtLogin.isAvailable else { return "请从「应用程序」打开灵宠岛后设置。" }
+        return launchAtLogin.errorMessage ?? "登录 Mac 后在后台运行。"
+    }
+}
+
+@MainActor
+private func settingToggle(_ title: String, detail: String, value: Binding<Bool>, separator: Bool = true) -> some View {
+    VStack(spacing: 0) {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.system(size: 13, weight: .medium))
+                Text(detail).font(.system(size: 12)).foregroundStyle(BossWorkbenchStyle.muted).fixedSize(horizontal: false, vertical: true)
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            Toggle(title, isOn: value).labelsHidden().toggleStyle(SettingsSwitchStyle())
+        }.padding(.vertical, 16)
+        if separator { SettingsDivider() }
+    }
+}
+
+private struct SettingsDivider: View {
+    var body: some View {
+        Line().stroke(BossWorkbenchStyle.border, style: StrokeStyle(lineWidth: 1, dash: [3, 2])).frame(height: 1)
+    }
+
+    private struct Line: Shape {
+        func path(in rect: CGRect) -> Path {
+            Path { path in
+                path.move(to: CGPoint(x: 0, y: 0))
+                path.addLine(to: CGPoint(x: rect.width, y: 0))
+            }
+        }
+    }
 }
 
 /// Xcode-style read-only code card: header with filename and copy button,

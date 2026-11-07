@@ -15,7 +15,7 @@ export LINGCHONGDAO_SPARKLE_PUBLIC_KEY="公钥的 Base64"
 脚本先构建 Release App 与五个伴随插件，再生成压缩只读 DMG。版本取自构建产物的 `CFBundleShortVersionString`；当前输出为：
 
 ```text
-dist/release/LingChongDao-0.1.44-macOS-arm64.dmg
+dist/release/LingChongDao-0.1.45-macOS-arm64.dmg
 dist/release/SHA256SUMS.txt
 dist/release/appcast.xml
 ```
@@ -44,7 +44,7 @@ shasum -a 256 -c SHA256SUMS.txt
 
 工作流从标签获取源码，使用 `macos-15` ARM runner，校验标签、架构和 App 版本，运行公开源码检查、串行隔离验证与更新签名验证，再生成 DMG 和 appcast。构建任务只有读取权限；发布任务获取该构建的确切 artifact ID，复核 SHA-256 和标签提交，先建立草稿 Release，确认 DMG、校验文件和 appcast 附件齐全后再发布并设为 latest。已有同名 Release（包括失败遗留草稿）时失败，不替换旧附件。稳定发布工作流串行执行，避免不同版本竞争 latest。
 
-当前版本为 `0.1.44`（build `45`），版本号在 `scripts/build-app.sh` 的 Info.plist 中维护。后续发布前同步更新版本和 `docs/RELEASE-NOTES.md`，再创建对应标签。
+当前版本为 `0.1.45`（build `46`），版本号在 `scripts/build-app.sh` 的 Info.plist 中维护。后续发布前同步更新版本和 `docs/RELEASE-NOTES.md`，再创建对应标签。
 
 本地生成 DMG 不会上传 GitHub、安装 App 或修改来源插件配置。[GitHub 仓库](https://github.com/LJjayyy/LingChongDao)、Release 与安装包均公开可见；普通源码推送不会创建 Release，推送版本标签才会触发发布工作流。
 

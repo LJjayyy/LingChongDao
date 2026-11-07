@@ -76,8 +76,8 @@ cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <key>CFBundleName</key><string>灵宠岛</string>
 <key>CFBundleDisplayName</key><string>灵宠岛</string>
 <key>CFBundleIdentifier</key><string>local.lingchongdao.app</string>
-<key>CFBundleVersion</key><string>45</string>
-<key>CFBundleShortVersionString</key><string>0.1.44</string>
+<key>CFBundleVersion</key><string>46</string>
+<key>CFBundleShortVersionString</key><string>0.1.45</string>
 <key>CFBundleIconFile</key><string>AppIcon.icns</string>
 <key>CFBundleExecutable</key><string>LingChongDao</string>
 <key>CFBundlePackageType</key><string>APPL</string>

@@ -16,7 +16,7 @@ checks=(
   verify-workbuddy.sh verify-workbuddy-application.sh
   verify-dsh-navigation.sh verify-dsh-plugin.mjs
   verify-source-attention.sh verify-attention-reveal.sh verify-pets.sh
-  verify-origins.sh verify-clamshell-guard.sh verify-keep-awake.sh
+  verify-origins.sh verify-clamshell-guard.sh verify-keep-awake.sh verify-launch-at-login.sh
   verify-compact-window.sh verify-motion.sh verify-pet-renderer.sh
   verify-boss-pet-motion.sh verify-connection-layout.sh verify-workbench-navigation.sh
 )

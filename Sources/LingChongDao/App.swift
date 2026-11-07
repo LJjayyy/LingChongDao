@@ -44,6 +44,7 @@ struct LingChongDaoMain {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuItemValidation {
     private let settings: AppSettings
+    private let launchAtLogin: LaunchAtLoginController
     private let keepAwake = KeepAwakeController.shared
     private let updates = AppUpdateController.shared
     private let model: AppModel
@@ -82,11 +83,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
             bridgeSocketPath = IslandCore.BridgePaths.defaultSocketPath
         }
         settings = AppSettings(defaults: defaults)
+        launchAtLogin = LaunchAtLoginController(available: isolatedRoot == nil
+            && Bundle.main.bundleIdentifier == RuntimeIdentityMigration.bundleIdentifier
+            && Bundle.main.bundleURL.pathExtension.lowercased() == "app")
         model = AppModel(settings: settings, defaults: defaults)
         super.init()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // The login marker belongs to the launch event being handled by AppKit now.
+        let background = CommandLine.arguments.contains("--background")
+            || LaunchAtLoginController.isLoginLaunch(NSAppleEventManager.shared().currentAppleEvent)
         PetAppearanceStore.shared.start()
         coordinator = IslandWindowCoordinator { [weak self] context in
             guard let self else { return AnyView(EmptyView()) }
@@ -122,7 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         updateWindows()
         Task { await connections.refresh() }
         updates.start()
-        if !CommandLine.arguments.contains("--background") { showWorkbench() }
+        if !background { showWorkbench() }
     }
 
     private func configureMainMenu() {
@@ -197,7 +204,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         window.title = "灵宠岛"
         window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: 850, height: 650)
-        window.contentView = NSHostingView(rootView: WorkbenchView(model: model, settings: settings, connections: connections))
+        window.contentView = NSHostingView(rootView: WorkbenchView(model: model, settings: settings,
+            connections: connections, launchAtLogin: launchAtLogin))
         window.delegate = self; window.center(); workbench = window
         window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     }

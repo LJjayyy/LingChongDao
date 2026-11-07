@@ -30,7 +30,8 @@ struct WorkbenchNavigationVerification {
   defer { PetAppearanceStore.shared.stop() }
   var ready = false
   Task { await manager.refresh(); ready = true }
-  let host = NSHostingView(rootView: WorkbenchView(model: model, settings: settings, connections: manager))
+  let host = NSHostingView(rootView: WorkbenchView(model: model, settings: settings, connections: manager,
+    launchAtLogin: LaunchAtLoginController(available: false)))
   let window = NSWindow(contentRect: NSRect(x: 0,y: 0,width: 1000,height: 760),styleMask: [.titled], backing: .buffered,defer: false)
   window.contentView = host
   host.frame = NSRect(x: 0,y: 0,width: 1000,height: 760)
@@ -44,16 +45,19 @@ struct WorkbenchNavigationVerification {
   let output = URL(fileURLWithPath: ProcessInfo.processInfo.environment["NAVIGATION_EVIDENCE_DIR"] ?? "/private/tmp/lingchongdao-navigation-evidence")
   try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
   let widths: [CGFloat] = [1000, 850]
+  let steps: [(title: String, y: CGFloat)] = [
+   ("连接的应用", 216), ("任务总览", 120), ("连接的应用", 216), ("屏幕顶部", 168),
+   ("设置", 264), ("连接的应用", 216), ("检查连接", 45)
+  ]
   var failures: [String] = []
   for width in widths {
    window.setContentSize(NSSize(width: width, height: 760))
    host.layoutSubtreeIfNeeded()
   var worst = 0.0
-  for title in ["连接的应用", "任务总览", "连接的应用", "屏幕顶部", "连接的应用", "检查连接"] {
+  for (title, y) in steps {
 
    let start = Date()
    let checking = title == "检查连接"
-   let y: CGFloat = checking ? 45 : title == "连接的应用" ? 216 : title == "任务总览" ? 120 : 168
    let point = host.convert(NSPoint(x: checking ? width - 80 : 100, y: y), to: nil)
    for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
     let event = NSEvent.mouseEvent(with: type, location: point, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber, context: nil, eventNumber: 1, clickCount: 1, pressure: 1)!
