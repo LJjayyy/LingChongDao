@@ -50,7 +50,7 @@ app_dir="$project_dir/dist/build.noindex/灵宠岛.app"
 # Always regenerate this managed resource tree so removed resources cannot linger.
 rm -rf "$app_dir/Contents/Resources"
 rm -rf "$app_dir/Contents/Frameworks/Sparkle.framework"
-mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources" "$app_dir/Contents/Frameworks"
+mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources" "$app_dir/Contents/Frameworks" "$app_dir/Contents/Helpers"
 /usr/bin/ditto --norsrc --noextattr "$sparkle_framework" "$app_dir/Contents/Frameworks/Sparkle.framework"
 cp "$sparkle_dir/LICENSE" "$app_dir/Contents/Resources/Sparkle-LICENSE"
 cp "$project_dir/LICENSE" "$app_dir/Contents/Resources/LICENSE"
@@ -65,8 +65,19 @@ for name in boss-mouse.png boss-mouse-actions.png boss-mouse-performance.png bos
 done
 cp "$binary_dir/LingChongDao" "$app_dir/Contents/MacOS/LingChongDao"
 cp "$binary_dir/lingchongdao-hook" "$app_dir/Contents/MacOS/lingchongdao-hook"
+keep_awake_helper="$app_dir/Contents/Helpers/lingchongdao-keepawake"
+helper_build_options=(-swift-version 5 -O -target "$(uname -m)-apple-macos14.0")
 if [[ "$configuration" == "release" ]]; then
-  /usr/bin/strip -S "$app_dir/Contents/MacOS/LingChongDao" "$app_dir/Contents/MacOS/lingchongdao-hook"
+  helper_build_options+=(-file-prefix-map "$project_dir=/src/LingChongDao" -debug-prefix-map "$project_dir=/src/LingChongDao")
+fi
+swiftc "${helper_build_options[@]}" \
+  -module-cache-path "$project_dir/.build/keep-awake-helper-module-cache" \
+  Sources/LingChongDao/Models/ClamshellGuardCommand.swift \
+  Sources/KeepAwakeHelper/KeepAwakeHelper.swift \
+  Sources/KeepAwakeHelper/main.swift \
+  -o "$keep_awake_helper"
+if [[ "$configuration" == "release" ]]; then
+  /usr/bin/strip -S "$app_dir/Contents/MacOS/LingChongDao" "$app_dir/Contents/MacOS/lingchongdao-hook" "$keep_awake_helper"
   /usr/bin/codesign --force --sign - "$app_dir/Contents/MacOS/lingchongdao-hook"
 fi
 cat > "$app_dir/Contents/Info.plist" <<'PLIST'
@@ -76,8 +87,8 @@ cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <key>CFBundleName</key><string>灵宠岛</string>
 <key>CFBundleDisplayName</key><string>灵宠岛</string>
 <key>CFBundleIdentifier</key><string>local.lingchongdao.app</string>
-<key>CFBundleVersion</key><string>46</string>
-<key>CFBundleShortVersionString</key><string>0.1.45</string>
+<key>CFBundleVersion</key><string>47</string>
+<key>CFBundleShortVersionString</key><string>0.1.46</string>
 <key>CFBundleIconFile</key><string>AppIcon.icns</string>
 <key>CFBundleExecutable</key><string>LingChongDao</string>
 <key>CFBundlePackageType</key><string>APPL</string>
@@ -131,6 +142,9 @@ for nested in XPCServices/Installer.xpc XPCServices/Downloader.xpc Autoupdate Up
 done
 codesign --force --sign - "$framework"
 codesign --force --sign - "$app_dir/Contents/MacOS/lingchongdao-hook"
+codesign --force --sign - "$keep_awake_helper"
+keep_awake_helper_hash="$(/usr/bin/shasum -a 256 "$keep_awake_helper" | /usr/bin/awk '{ print $1 }')"
+/usr/libexec/PlistBuddy -c "Add :LingChongDaoKeepAwakeHelperSHA256 string $keep_awake_helper_hash" "$app_dir/Contents/Info.plist"
 codesign --force --sign - "$app_dir"
 /usr/bin/codesign --verify --deep --strict "$app_dir"
 if [[ "$configuration" == "release" ]]; then

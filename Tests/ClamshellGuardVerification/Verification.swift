@@ -181,6 +181,94 @@ private struct Verification {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
         return try FakeShellPower(root: root, original: original)
     }
+    @MainActor static func verifyPrivilegedHelperArguments() throws {
+        let uid = getuid()
+        let token = UUID().uuidString
+        let temp = URL(fileURLWithPath: "/private/tmp", isDirectory: true)
+        let client = temp.appendingPathComponent("LingChongDao-Clamshell-\(UUID().uuidString)", isDirectory: true)
+        let symlink = temp.appendingPathComponent("LingChongDao-Clamshell-\(UUID().uuidString)", isDirectory: true)
+        let manager = FileManager.default
+        defer {
+            try? manager.removeItem(at: symlink)
+            try? manager.removeItem(at: client)
+        }
+        try manager.createDirectory(at: client, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+        try manager.createSymbolicLink(at: symlink, withDestinationURL: client)
+        let session = temp.appendingPathComponent("LingChongDao-Broker-\(UUID().uuidString)")
+        try manager.createDirectory(at: session, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+        defer { try? manager.removeItem(at: session) }
+        let arguments = ["broker", String(uid), String(getpid()), session.path]
+        guard let broker = KeepAwakeHelper(arguments: arguments) else { throw Failure.failed("expected valid per-app broker") }
+        let valid = broker.command(token: token, stopDirectory: client.path)
+        try expect(valid?.recordURL.path == "/private/var/db/lingchongdao-keepawake/u\(uid)-\(token)" &&
+                   valid?.stopFileURL.path == client.appendingPathComponent("stop").path &&
+                   valid?.pmsetExecutable == "/usr/bin/pmset", "broker assembles the fixed command with production paths")
+        try expect(KeepAwakeHelper(arguments: arguments + ["extra"]) == nil, "broker rejects extra arguments")
+        try expect(KeepAwakeHelper(arguments: ["recover"] + arguments.dropFirst()) == nil, "broker rejects other operations")
+        try expect(KeepAwakeHelper(arguments: ["broker", String(uid &+ 1), String(getpid()), session.path]) == nil,
+                   "broker rejects a UID that differs from its app")
+        try expect(KeepAwakeHelper(arguments: ["broker", String(uid), "1", session.path]) == nil, "broker rejects a system PID")
+        try expect(broker.command(token: token, stopDirectory: symlink.path) == nil, "broker rejects stop directory symlinks")
+        try expect(broker.command(token: token, stopDirectory: temp.path + "/../tmp/" + client.lastPathComponent) == nil,
+                   "broker rejects an indirect stop directory path")
+        try expect(broker.command(token: "invalid", stopDirectory: client.path) == nil, "broker rejects non-UUID tokens")
+
+        // Authenticate both endpoints of a real unprivileged test connection.
+        let listener = socket(AF_UNIX, SOCK_STREAM, 0)
+        guard listener >= 0 else { throw Failure.failed("socket creation") }
+        defer { close(listener) }
+        var address = sockaddr_un()
+        address.sun_family = sa_family_t(AF_UNIX)
+        address.sun_len = UInt8(MemoryLayout<sockaddr_un>.size)
+        let bytes = session.appendingPathComponent("control").path.utf8CString
+        withUnsafeMutableBytes(of: &address.sun_path) { $0.copyBytes(from: bytes.map { UInt8(bitPattern: $0) }) }
+        let bound = withUnsafePointer(to: &address) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                Darwin.bind(listener, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
+            }
+        }
+        guard bound == 0, listen(listener, 2) == 0, let peer = broker.connect() else { throw Failure.failed("app peer UID/PID validation") }
+        let app = accept(listener, nil, nil)
+        guard app >= 0 else { close(peer); throw Failure.failed("app accept") }
+        let done = DispatchSemaphore(value: 0)
+        DispatchQueue.global().async {
+            defer { close(peer); done.signal() }
+            broker.serve(peer) { command in
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/bin/sleep")
+                process.arguments = [command.token == token ? "0.4" : "120"]
+                try process.run()
+                return process
+            }
+        }
+        let second = UUID().uuidString
+        let lines = "start \(token) \(client.path)\nstart \(second) \(client.path)\n"
+        guard lines.utf8CString.withUnsafeBytes({ Darwin.write(app, $0.baseAddress, $0.count - 1) }) == lines.utf8.count
+        else { close(app); throw Failure.failed("could not send test requests") }
+        let expected = "started \(token)\nended \(token)\nstarted \(second)\n"
+        var received = Data(), buf = [UInt8](repeating: 0, count: 256)
+        while received.count < expected.utf8.count {
+            var descriptor = pollfd(fd: app, events: Int16(POLLIN), revents: 0)
+            guard poll(&descriptor, 1, 4000) > 0 else { close(app); throw Failure.failed("broker response timeout") }
+            let count = Darwin.read(app, &buf, buf.count)
+            guard count > 0 else { close(app); throw Failure.failed("premature broker EOF") }
+            received.append(contentsOf: buf.prefix(count))
+        }
+        close(app)
+        try expect(String(decoding: received, as: UTF8.self) == expected, "serializes starts and reports exits to the authenticated app")
+        try expect(done.wait(timeout: .now() + 4) == .success, "app EOF terminates active watcher before broker exits")
+        let otherPID = Process()
+        otherPID.executableURL = URL(fileURLWithPath: "/bin/sleep")
+        otherPID.arguments = ["30"]
+        try otherPID.run()
+        defer { if otherPID.isRunning { otherPID.terminate(); otherPID.waitUntilExit() } }
+        guard let wrongPeer = KeepAwakeHelper(arguments: ["broker", String(uid), String(otherPID.processIdentifier), session.path])
+        else { throw Failure.failed("second process should belong to the same account") }
+        try expect(wrongPeer.connect() == nil, "rejects the same account's socket listener when its authenticated PID is wrong")
+        try manager.setAttributes([.posixPermissions: 0o755], ofItemAtPath: client.path)
+        try expect(broker.command(token: token, stopDirectory: client.path) == nil, "broker rejects a shared stop directory")
+
+    }
     @MainActor static func main() async {
         let base = FileManager.default.temporaryDirectory.appendingPathComponent("ClamshellFake-\(UUID().uuidString)")
         do {
@@ -189,6 +277,8 @@ private struct Verification {
                 for process in launchedFakeProcesses where process.isRunning { kill(process.processIdentifier, SIGKILL) }
                 try? FileManager.default.removeItem(at: base)
             }
+            try await verifyKeepAwakeBrokerClient()
+            try verifyPrivilegedHelperArguments()
             let originalOne = try shellFixture(base, "original one", "1")
             let syntax = try originalOne.run(syntaxOnly: true)
             try await waitFor { !syntax.isRunning }
@@ -202,10 +292,13 @@ private struct Verification {
             compiler.standardError = FileHandle.nullDevice
             try compiler.run()
             launchedFakeProcesses.append(compiler)
-            input.fileHandleForWriting.write(Data(originalOne.command.appleScript.utf8))
+            let installer = KeepAwakeHelperInstallation(source: base.appendingPathComponent("助手's bundle"), digest: String(repeating: "a", count: 64))
+            let firstRun = KeepAwakeAuthorization.administratorScript(
+                installer.brokerCommand(directory: base, appPID: getpid(), uid: getuid()), prompt: "灵宠岛要开启合盖防休眠，并为以后的开启配置触控 ID。")
+            input.fileHandleForWriting.write(Data((originalOne.command.appleScript + "\n" + firstRun).utf8))
             try input.fileHandleForWriting.close()
             try await waitFor { !compiler.isRunning }
-            try expect(compiler.terminationStatus == 0, "administrator AppleScript compiles offline without executing or authorizing")
+            try expect(compiler.terminationStatus == 0, "password and first-run setup AppleScripts compile offline without executing or authorizing")
             try expect(originalOne.command.appleScript.contains("\\\\''"), "shell and AppleScript layers escape quoted paths")
             let one = try originalOne.run()
             try await waitFor { FileManager.default.fileExists(atPath: originalOne.command.readyFileURL.path) }

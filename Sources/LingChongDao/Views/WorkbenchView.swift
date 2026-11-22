@@ -354,7 +354,7 @@ private struct UtilitySettingsView: View {
                         .padding(.bottom, 12)
                 }
                 SettingsDivider()
-                settingToggle("保持唤醒（含合盖）", detail: "开启时申请管理员授权，阻止 Mac 休眠并包含合盖场景。关闭或退出后恢复原电源状态，每次启动默认关闭。开盖解锁仍按 macOS 设置。",
+                settingToggle("保持唤醒（含合盖）", detail: KeepAwakeController.scopeDescription,
                               value: Binding(get: { keepAwake.state != .off }, set: { keepAwake.setEnabled($0) }), separator: false)
                     .disabled(keepAwake.isChanging)
             }.padding(.horizontal, 18).bossCard()

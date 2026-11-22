@@ -26,7 +26,7 @@ struct KeepAwakeBackend {
 @MainActor
 final class KeepAwakeController: ObservableObject {
     static let shared = KeepAwakeController()
-    static let scopeDescription = "保持 Mac 唤醒（含合盖）。开启时需要管理员授权，关闭或退出后恢复；锁屏验证仍按 macOS 设置。"
+    static let scopeDescription = "保持 Mac 唤醒（含合盖）。本次打开后首次开启需管理员授权，之后可用触控 ID 或密码。关闭或退出后恢复休眠。"
 
     @Published private(set) var state: KeepAwakeState = .off
     @Published private(set) var errorMessage: String?
@@ -51,7 +51,7 @@ final class KeepAwakeController: ObservableObject {
         return state == .partial ? "需恢复休眠" : (isEnabled ? "已开启（含合盖）" : "已关闭")
     }
     var accessibilityValue: String {
-        isChanging ? actionTitle : (state == .partial ? "恢复未完成" : (isEnabled ? "开，含合盖" : "关"))
+        return isChanging ? actionTitle : (state == .partial ? "恢复未完成" : (isEnabled ? "开，含合盖" : "关"))
     }
 
     init(backend: KeepAwakeBackend = .live, clamshellGuard: ClamshellSleepGuardControlling? = nil) {
@@ -188,7 +188,6 @@ final class KeepAwakeController: ObservableObject {
             transition = Task { [weak self] in
                 guard let self else { return }
                 await self.disable()
-                if !self.isEnabled { self.errorMessage = "合盖防休眠已停止，原来的休眠状态已恢复。需要时请重新开启。" }
                 self.isChanging = false
             }
             return false

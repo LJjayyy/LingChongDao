@@ -150,6 +150,20 @@ private struct KeepAwakeVerification {
             try expect(cancelled.state == .off && cancelled.errorMessage == nil && !cancelled.isChanging, "cancelled authorization quietly returns off")
             try expect(cancelledBackend.creations.isEmpty, "authorization cancellation never creates idle assertions")
 
+            let biometricGuard = FakeClamshellGuard()
+            biometricGuard.startError = .authorizationCancelled
+            let fallback = KeepAwakeController(backend: FakePowerBackend().backend, clamshellGuard: biometricGuard)
+            fallback.toggle()
+            await fallback.waitForTransition()
+            try expect(fallback.state == .off && fallback.errorMessage == nil && fallback.actionTitle == "保持唤醒（含合盖）", "cancelled fingerprint keeps the feature label")
+            biometricGuard.startError = nil
+            fallback.toggle()
+            await fallback.waitForTransition()
+            try expect(biometricGuard.starts == 2 && fallback.isFullyEnabled, "retry requests authorization again")
+            fallback.stop()
+            await fallback.waitForTransition()
+            try expect(fallback.actionTitle == "保持唤醒（含合盖）", "next activation keeps the regular label")
+
             let deniedGuard = FakeClamshellGuard()
             deniedGuard.startError = .authorizationDenied
             let deniedBackend = FakePowerBackend()
@@ -198,7 +212,7 @@ private struct KeepAwakeVerification {
             let deadline = ContinuousClock.now + .seconds(4)
             while lost.state == .on && ContinuousClock.now < deadline { try? await Task.sleep(for: .milliseconds(50)) }
             await lost.waitForTransition()
-            try expect(lost.state == .off && lost.errorMessage != nil, "dead privileged guard cannot keep reporting fully enabled")
+            try expect(lost.state == .off && lost.errorMessage == nil, "a stopped guard with verified cleanup quietly returns off")
             try expect(lostBackend.active == [999], "dead guard releases only this instance's idle assertions")
             let crashedGuard = FakeClamshellGuard()
             let crashedBackend = FakePowerBackend()

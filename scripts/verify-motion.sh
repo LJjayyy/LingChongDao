@@ -45,6 +45,10 @@ swiftc -parse-as-library -swift-version 5 -target "$(uname -m)-apple-macos14.0" 
   Sources/LingChongDao/Models/AppSettings.swift Sources/LingChongDao/Models/AppModel.swift \
   Sources/LingChongDao/Models/KeepAwakeController.swift \
   Sources/LingChongDao/Models/ClamshellSleepGuard.swift \
+  Sources/LingChongDao/Models/ClamshellGuardCommand.swift \
+  Sources/LingChongDao/Models/KeepAwakeHelperInstallation.swift \
+  Sources/LingChongDao/Models/KeepAwakeSessionBroker.swift \
+  Sources/LingChongDao/Models/KeepAwakeAuthorization.swift \
   Tests/MotionVerification/Verification.swift \
   "${core_link[@]}" -o "$verification_dir/lingchongdao-verify-motion"
 "$verification_dir/lingchongdao-verify-motion" "$@"
